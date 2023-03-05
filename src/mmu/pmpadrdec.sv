@@ -34,6 +34,7 @@
 
 module pmpadrdec (
   input  logic [`PA_BITS-1:0]   PhysicalAddress,
+  input  logic [1:0]            Size,
   input  logic [7:0]            PMPCfg,
   input  logic [`XLEN-1:0]      PMPAdr,
   input  logic                  PAgePMPAdrIn,
@@ -66,7 +67,7 @@ module pmpadrdec (
   assign TORMatch = PAgePMPAdrIn & PAltPMPAdr;
 
   // Naturally aligned regions
-  logic [`PA_BITS-1:0] NAMask, NABase;
+  logic [`PA_BITS-1:0] NAMask, NABase, NAMatchIntermediate;
 
   assign NAMask[1:0] = {2'b11};
   assign NAMask[`PA_BITS-1:2] = (PMPAdr[`PA_BITS-3:0] + {{(`PA_BITS-3){1'b0}}, (AdrMode == NAPOT)}) ^ PMPAdr[`PA_BITS-3:0];
@@ -74,7 +75,8 @@ module pmpadrdec (
   // This assumes we're using at least an NA4 region, but works for any size NAPOT region.
   assign NABase = {(PMPAdr[`PA_BITS-3:0] & ~NAMask[`PA_BITS-1:2]), 2'b00}; // base physical address of the pmp. 
   
-  assign NAMatch = &((NABase ~^ PhysicalAddress) | NAMask); // check if upper bits of base address match, ignore lower bits correspoonding to inside the memory range
+  assign NAMatchIntermediate = ((NABase ~^ PhysicalAddress) | NAMask | {(Size == 2'b11), 2'b00});
+  assign NAMatch = &(NAMatchIntermediate); // check if upper bits of base address match, ignore lower bits corresponding to inside the memory range
 
   assign Match = (AdrMode == TOR) ? TORMatch : 
                  (AdrMode == NA4 | AdrMode == NAPOT) ? NAMatch :

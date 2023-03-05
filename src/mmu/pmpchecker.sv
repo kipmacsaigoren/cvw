@@ -33,7 +33,7 @@
 
 module pmpchecker (
   input  logic [`PA_BITS-1:0]      PhysicalAddress,  
-  input  logic [1:0]               PrivilegeModeW,
+  input  logic [1:0]               PrivilegeModeW, Size,
   // ModelSim has a switch -svinputport which controls whether input ports
   // are nets (wires) or vars by default. The default setting of this switch is
   // `relaxed`, which means that signals are nets if and only if they are
@@ -59,7 +59,8 @@ module pmpchecker (
 
   if (`PMP_ENTRIES > 0) 
     pmpadrdec pmpadrdecs[`PMP_ENTRIES-1:0](
-      .PhysicalAddress, 
+      .PhysicalAddress,
+      .Size,
       .PMPCfg(PMPCFG_ARRAY_REGW),
       .PMPAdr(PMPADDR_ARRAY_REGW),
       .PAgePMPAdrIn({PAgePMPAdr[`PMP_ENTRIES-2:0], 1'b1}),
