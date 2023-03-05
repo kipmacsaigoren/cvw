@@ -75,8 +75,7 @@ module pmpadrdec (
   // This assumes we're using at least an NA4 region, but works for any size NAPOT region.
   assign NABase = {(PMPAdr[`PA_BITS-3:0] & ~NAMask[`PA_BITS-1:2]), 2'b00}; // base physical address of the pmp. 
   
-  assign NAMatchIntermediate = ((NABase ~^ PhysicalAddress) | NAMask | {(Size == 2'b11), 2'b00});
-  assign NAMatch = &(NAMatchIntermediate); // check if upper bits of base address match, ignore lower bits corresponding to inside the memory range
+  assign NAMatch = &((NABase ~^ PhysicalAddress) | NAMask | {(Size == 2'b11), 2'b00}); // check if upper bits of base address match, match for 64 bit accesses coming across into this region, and ignore lower bits corresponding to inside the memory range
 
   assign Match = (AdrMode == TOR) ? TORMatch : 
                  (AdrMode == NA4 | AdrMode == NAPOT) ? NAMatch :
