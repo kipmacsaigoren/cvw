@@ -8,7 +8,7 @@
 00000000
 20040084 # writeback of value written to PMPADDR4
 00000000
-200400c0 # writeback of value written to PMPADDR5
+200400c1 # writeback of value written to PMPADDR5
 00000000
 2004013f # writeback of value written to PMPADDR6
 00000000
@@ -20,9 +20,13 @@
 1f000000
 0009001f # old value of PMPCFG0 after failed write to locked out region
 0018900c
-200400c0 # old value of PMPADDR5 after failed write to locked out region
+200400c1 # old value of PMPADDR5 after failed write to locked out region
 00000000
 00000005 # Test 12.3.2.2.2: read test with access fault to region with L=1, R=0
+00000000
+00000bad
+00000000
+00000005 # read test with access fault when access begins in allowed region and ends in protected region
 00000000
 00000bad
 00000000
@@ -54,10 +58,6 @@
 00000000
 00000009 # ecall from terminating tests in S mode
 00000000
-deadbeef
-deadbeef
-deadbeef
-deadbeef
 deadbeef
 deadbeef
 deadbeef
