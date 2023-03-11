@@ -41,6 +41,7 @@ module cnt #(parameter WIDTH = 32) (
   logic [WIDTH-1:0] czResult;        // count zeros result
   logic [WIDTH-1:0] cpopResult;      // population count result
   logic [WIDTH-1:0] lzcA, popcntA;
+  logic [WIDTH-1:0] popcntIn;
 
   //only in rv64
   if (WIDTH==64) begin
@@ -55,11 +56,11 @@ module cnt #(parameter WIDTH = 32) (
     mux2 #(WIDTH) lzcmux32(A, RevA, B[0], lzcA);
   end
 
-  lzc #(WIDTH) lzc(.num(lzcA), .ZeroCnt(czResult[$clog2(WIDTH):0]));
-  popcnt #(WIDTH) popcntw(.num(popcntA), .PopCnt(cpopResult[$clog2(WIDTH):0]));
+  lzd #(WIDTH) lzd(.A(lzcA), .Y(czResult));
+  assign popcntIn = B[1] ? popcntA : czResult; 
+  popcnt #(WIDTH) popcntw(.num(popcntIn), .PopCnt(cpopResult[$clog2(WIDTH):0]));
   // zero extend these results to fit into width *** There may be a more elegant way to do this
-  assign czResult[WIDTH-1:$clog2(WIDTH)+1] = {(WIDTH-$clog2(WIDTH)-1){1'b0}}; 
   assign cpopResult[WIDTH-1:$clog2(WIDTH)+1] = {(WIDTH-$clog2(WIDTH)-1){1'b0}};
 
-  mux2 #(WIDTH) cntresultmux(czResult, cpopResult, B[1], CntResult);
+  mux2 #(WIDTH) cntresultmux(cpopResult, cpopResult, B[1], CntResult);
 endmodule
