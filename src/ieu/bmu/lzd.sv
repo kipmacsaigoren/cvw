@@ -34,8 +34,8 @@ module lzd #(parameter WIDTH = 1) (
     Y = 0;
     i = WIDTH-1;
     while (~A[i] & (i >= 0)) begin
-        i = i-1;
         Y[i] = 1;
+        i = i-1;
     end
   end
 endmodule
