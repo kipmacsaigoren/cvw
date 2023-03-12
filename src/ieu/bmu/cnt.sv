@@ -56,7 +56,7 @@ module cnt #(parameter WIDTH = 32) (
     mux2 #(WIDTH) lzcmux32(A, RevA, B[0], lzcA);
   end
 
-  lzd #(WIDTH) lzd(.A(lzcA), .Y(czResult));
+  lzd #(WIDTH) lzd(.a(lzcA), .y(czResult));
   assign popcntIn = B[1] ? popcntA : czResult; 
   popcnt #(WIDTH) popcntw(.num(popcntIn), .PopCnt(cpopResult[$clog2(WIDTH):0]));
   // zero extend these results to fit into width *** There may be a more elegant way to do this
