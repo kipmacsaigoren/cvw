@@ -25,11 +25,11 @@ def csa(width, i1,j1,k1,i2,j2,k2,carryk, sumj, sumk,i3="X",j3="X",k3="X"):
     if (width == 2):
         return f"""logic w{i1+1}_{0}_{carryk};
 logic w{i1}_{sumj}_{sumk};
-csan csa{i1}_{j1}_{k1}_{i2}_{j2}_{k2}_{i3}_{j3}_{k3}(w{i1}_{j1}_{k1}, w{i2}_{j2}_{k2}, 0, w{i1+1}_{0}_{carryk}, w{i1}_{sumj}_{sumk});\n"""
+csan csan{i1}_{j1}_{k1}_{i2}_{j2}_{k2}_{i3}_{j3}_{k3}(w{i1}_{j1}_{k1}, w{i2}_{j2}_{k2}, 0, w{i1+1}_{0}_{carryk}, w{i1}_{sumj}_{sumk});\n"""
     elif (width == 3):
         return f"""logic w{i1+1}_{0}_{carryk};
 logic w{i1}_{sumj}_{sumk};
-csan csa{i1}_{j1}_{k1}_{i2}_{j2}_{k2}_{i3}_{j3}_{k3}(w{i1}_{j1}_{k1}, w{i2}_{j2}_{k2}, w{i3}_{j3}_{k3}, w{i1+1}_{0}_{carryk}, w{i1}_{sumj}_{sumk});\n"""
+csan csan{i1}_{j1}_{k1}_{i2}_{j2}_{k2}_{i3}_{j3}_{k3}(w{i1}_{j1}_{k1}, w{i2}_{j2}_{k2}, w{i3}_{j3}_{k3}, w{i1+1}_{0}_{carryk}, w{i1}_{sumj}_{sumk});\n"""
 
 def generate(XLEN):
     lines = ""
@@ -60,6 +60,7 @@ endmodule\n\n"""
         carryidx=0
         while (len(sum_queue) > 0):
             if (len(sum_queue) == 1):
+                # dequeue weight
                 w1 = sum_queue[0]
                 sum_queue=sum_queue[1:]
 
@@ -137,10 +138,6 @@ endmodule\n\n"""
         carry_queue = []
     # done
     print(lines)
-
-
-
-    
     
 
 def main():

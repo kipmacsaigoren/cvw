@@ -34,14 +34,15 @@ module popcnt #(parameter WIDTH = 32) (
   always_comb begin
     sum = 0;
     for (int i=0;i<WIDTH;i++) begin:loop
-      sum = (num[i]) ? sum + 1 : sum;
+      sum = (a[i]) ? sum + 1 : sum;
     end
   end
 
-  assign PopCnt = sum[$clog2(WIDTH):0];
+  assign s = sum[$clog2(WIDTH):0];
 
-  */
-
+  endmodule
+*/
+/* verilator lint_off IMPLICIT */
 assign {w0_0_31, w0_0_30, w0_0_29, w0_0_28, w0_0_27, w0_0_26, w0_0_25, w0_0_24, w0_0_23, w0_0_22, w0_0_21, w0_0_20, w0_0_19, w0_0_18, w0_0_17, w0_0_16, w0_0_15, w0_0_14, w0_0_13, w0_0_12, w0_0_11, w0_0_10, w0_0_9, w0_0_8, w0_0_7, w0_0_6, w0_0_5, w0_0_4, w0_0_3, w0_0_2, w0_0_1, w0_0_0} = a;
 logic w1_0_0;
 logic w0_1_63;
@@ -144,9 +145,7 @@ assign s4 = w4_1_32;
 assign s5 = w5_0_0;
 
 assign s = {s5, s4, s3, s2, s1, s0};
+/* verilator lint_on IMPLICIT */
+
 endmodule
 
-module csan(input logic a0, input logic a1, input logic a2, output logic c, output logic s);
-    assign c = (a0&a1) | (a0&a2) | (a1&a2);
-    assign s = a0 ^ a1 ^ a2;
-endmodule
