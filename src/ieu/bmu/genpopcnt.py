@@ -20,19 +20,24 @@ class Weight:
 
 import math
 
-def csa(width, i1,j1,k1,i2,j2,k2,carryidx, sumidx,i3="X",j3="X",k3="X"):
+# define carry out, sum out, and csa module
+def csa(width, i1,j1,k1,i2,j2,k2,carryk, sumj, sumk,i3="X",j3="X",k3="X"):
     if (width == 2):
-        return f"csa csa{i1}_{j1}_{k1}_{i2}_{j2}_{k2}_{i3}_{j3}_{k3}(w{i1}_{j1}_{k1}, w{i2}_{j2}_{k2}, 0, w{i_1+1}_{0}_{carryidx}, w{i_1}_{j_1+1}_{sumidx});\n"
+        return f"""logic w{i1+1}_{0}_{carryk};
+logic w{i1}_{sumj}_{sumk};
+csan csa{i1}_{j1}_{k1}_{i2}_{j2}_{k2}_{i3}_{j3}_{k3}(w{i1}_{j1}_{k1}, w{i2}_{j2}_{k2}, 0, w{i1+1}_{0}_{carryk}, w{i1}_{sumj}_{sumk});\n"""
     elif (width == 3):
-        return f"csa csa{i1}_{j1}_{k1}_{i2}_{j2}_{k2}_{i3}_{j3}_{k3}(w{i1}_{j1}_{k1}, w{i2}_{j2}_{k2}, w{i3}_{j3}_{k3}, w{i_1+1}_{0}_{carryidx}, w{i_1}_{j_1+1}_{sumidx});\n"
+        return f"""logic w{i1+1}_{0}_{carryk};
+logic w{i1}_{sumj}_{sumk};
+csan csa{i1}_{j1}_{k1}_{i2}_{j2}_{k2}_{i3}_{j3}_{k3}(w{i1}_{j1}_{k1}, w{i2}_{j2}_{k2}, w{i3}_{j3}_{k3}, w{i1+1}_{0}_{carryk}, w{i1}_{sumj}_{sumk});\n"""
 
 def generate(XLEN):
     lines = ""
     lines += f"""
-    module csa(input logic a0, input logic a1, input logic a2, output logic c, output logic s);
-        assign c = (a&b) | (a&c) | (b&c);
-        assign s = a ^ b ^ c;
-    endmodule\n"""
+module csan(input logic a0, input logic a1, input logic a2, output logic c, output logic s);
+    assign c = (a0&a1) | (a0&a2) | (a1&a2);
+    assign s = a0 ^ a1 ^ a2;
+endmodule\n\n"""
     
     # Queue stores the CSA sum-outs
     sum_queue = []
@@ -49,8 +54,9 @@ def generate(XLEN):
     
     # strip trailing comma and space
     lines = lines[0:-2]
+    lines = lines + "} = a;\n"
 
-    while (len(sum_queue) > 0 or len(carry_queue) > 0):
+    while (len(sum_queue) > 0):
         carryidx=0
         while (len(sum_queue) > 0):
             if (len(sum_queue) == 1):
@@ -62,7 +68,7 @@ def generate(XLEN):
                 j1 = w1.j
                 k1 = w1.k
 
-                lines += f"assign s{i1} = w{i1}_{j1}_{k1};"
+                lines += f"assign s{i1} = w{i1}_{j1}_{k1};\n"
                 
             elif (len(sum_queue) == 2):
                 # dequeue two weights
@@ -79,10 +85,21 @@ def generate(XLEN):
                 j2 = w2.j
                 k2 = w2.k
 
-                l = csa(2, i1,j1,k1,i2,j2,k2, carryidx,k, i_1+XLEN)
+                # enqueue carry-out
+                c = Weight(i1+1, 0, carryidx)
+                carry_queue.append(c)
+
+                # enqueue sum-out
+                sumj = max(j1,j2)+1
+                sumk = k1+XLEN
+                s = Weight(i1,sumj,sumk)
+                sum_queue.append(s)
+
+                l = csa(2, i1,j1,k1,i2,j2,k2, carryidx,sumj, sumk)
                 lines += l
+
                 
-            else:
+            elif (len(sum_queue) >= 3):
                 # dequeue three weights
                 w1 = sum_queue[0]
                 w2 = sum_queue[1]
@@ -102,51 +119,33 @@ def generate(XLEN):
                 j3 = w3.j
                 k3 = w3.k
 
-                l = csa(3, i1,j1,k1,i2,j2,k2, carryidx,k, i_1+XLEN,i3,j3,k3)
+                # enqueue carry-out
+                c = Weight(i1+1, 0, carryidx)
+                carry_queue.append(c)
+
+                # enqueue sum-out
+                sumj = max(j1,j2,j3)+1
+                sumk = k1+XLEN
+                s = Weight(i1, sumj, sumk)
+                sum_queue.append(s)
+
+                l = csa(3, i1,j1,k1,i2,j2,k2, carryidx, sumj, sumk,i3,j3,k3)
                 lines += l
-                
+            carryidx = carryidx+1
+        # once sum_queue is empty, transfer carry-outs to sums.
+        sum_queue = carry_queue
+        carry_queue = []
+    # done
+    print(lines)
 
-
-
-    
-    index = 0
-    
-    # bit-width of hamming weight result
-    resultwidth = int(math.log2(XLEN)) 
-
-    #total w_{i-1}
-    carryouts = XLEN // 2
-
-    # level
-    level = XLEN // 2
-
-    # j  index
-    indexj = 0
-
-    covered=0
-    for w in range(sums):
 
 
     
     
 
 def main():
-    filename = input("Enter full filename: ")
-    n1 = int(input("Line number to begin: "))
-    n2 = int(input("Line number to end: "))
-    f = open(filename, "r")
-    flines = f.readlines()
+    generate(32)
 
-    #create list of lines from line n1 to n2, inclusive
-    lines = flines[(n1-1):(n2-1)]
-
-    #string to be printed
-    out = ""
-
-    for i in range(len(lines)):
-        lines[i] = addZero(lines[i])
-        out += lines[i]
-    print(out)
 
 if __name__ == "__main__":
     main()

@@ -56,7 +56,7 @@ module cnt #(parameter WIDTH = 32) (
   end
 
   lzc #(WIDTH) lzc(.num(lzcA), .ZeroCnt(czResult[$clog2(WIDTH):0]));
-  popcnt #(WIDTH) popcntw(.num(popcntA), .PopCnt(cpopResult[$clog2(WIDTH):0]));
+  popcnt #(WIDTH) popcntw(.a(popcntA), .s(cpopResult[$clog2(WIDTH):0]));
   // zero extend these results to fit into width *** There may be a more elegant way to do this
   assign czResult[WIDTH-1:$clog2(WIDTH)+1] = {(WIDTH-$clog2(WIDTH)-1){1'b0}}; 
   assign cpopResult[WIDTH-1:$clog2(WIDTH)+1] = {(WIDTH-$clog2(WIDTH)-1){1'b0}};
