@@ -1,32 +1,30 @@
 0fffffff # Test 12.3.2.2.1: writeback of value written to PMPADDR0
 00000000 
-20040000 # writeback of value written to PMPADDR1
+20040001 # writeback of value written to PMPADDR1
 00000000
 2004003f # writeback of value written to PMPADDR2
 00000000
 20040080 # writeback of value written to PMPADDR3
 00000000
-20040084 # writeback of value written to PMPADDR4
+20040081 # writeback of value written to PMPADDR4
 00000000
-200400c1 # writeback of value written to PMPADDR5
+20040084 # writeback of value written to PMPADDR5
 00000000
-2004013f # writeback of value written to PMPADDR6
+200400c1 # writeback of value written to PMPADDR6
+00000000
+2004013f # writeback of value written to PMPADDR7
 00000000
 2fffffff # writeback of value written to PMPADDR15
 00000000
-0009001f # writeback of value written to PMPCFG0
-0018900c
+1609001b # writeback of value written to PMPCFG0
+18900c00
 00000000 # writeback of value written to PMPCFG2
 1f000000
-0009001f # old value of PMPCFG0 after failed write to locked out region
-0018900c
-200400c1 # old value of PMPADDR5 after failed write to locked out region
+1609001b # old value of PMPCFG0 after failed write to locked out region
+18900c00
+200400c1 # old value of PMPADDR6 after failed write to locked out region
 00000000
 00000005 # Test 12.3.2.2.2: read test with access fault to region with L=1, R=0
-00000000
-00000bad
-00000000
-00000005 # read test with access fault when access begins in allowed region and ends in protected region
 00000000
 00000bad
 00000000
@@ -56,12 +54,16 @@
 00000000
 00000111 # execute sucess when X=1
 00000000
+00000005 # read test with access fault when access begins in allowed region and ends in protected NA region
+00000000
+00000bad
+00000000
+00000007 # write test with access fault when access begins in allowed region and ends in protected TOR region
+00000000
+00000007 # write test with access fault when access begins in protected TOR region and ends in allowed region
+00000000
 00000009 # ecall from terminating tests in S mode
 00000000
-deadbeef
-deadbeef
-deadbeef
-deadbeef
 deadbeef
 deadbeef
 deadbeef
