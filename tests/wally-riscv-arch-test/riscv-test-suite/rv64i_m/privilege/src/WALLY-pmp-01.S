@@ -86,7 +86,7 @@ test_cases:
 # attempt to write to pmpaddr5 and pmp5cfg after lockout
 .8byte 0x0, 0x18FF0C001609001B, write_pmpcfg_0 # attempt to edit only pmp6cfg after lockout. 
 # instruction ignored, output is 0x18900C001609001B, NOT 0x18900C001609001B
-.8byte 0x6, 0xFFFFFFFF, write_pmpaddr_6 # attempt to edit pmpaddr5 after lockout.
+.8byte 0x6, 0xFFFFFFFF, write_pmpaddr_6 # attempt to edit pmpaddr6 after lockout.
 # instruction ignored, output is 0x200400c0, NOT 0xFFFFFFFF
 
 # Test 12.3.2.2.2 Machine mode access
