@@ -50,6 +50,7 @@ module pmpadrdec (
 
   logic                         TORMatch, NAMatch;
   logic                         PAltPMPAdr;
+  logic                         TORBoundaryCross;
   logic [`PA_BITS-1:0]          CurrentAdrFull;
   logic [1:0]                   AdrMode;
 
@@ -61,9 +62,10 @@ module pmpadrdec (
  
   // Top-of-range (TOR)
   // Append two implicit trailing 0's to PMPAdr value
-  assign CurrentAdrFull  = {PMPAdr,  2'b00};
-  assign PAltPMPAdr = {1'b0, PhysicalAddress} < {1'b0, CurrentAdrFull}; // unsigned comparison
-  assign PAgePMPAdrOut = ~PAltPMPAdr;
+  assign CurrentAdrFull  = {PMPAdr[`PA_BITS-3:0],  2'b00};
+  assign TORBoundaryCross = (Size == 2'b11) & ({PhysicalAddress[`PA_BITS-1:3], 3'b100} == CurrentAdrFull);
+  assign PAltPMPAdr = ({1'b0, PhysicalAddress} < {1'b0, CurrentAdrFull}); // unsigned comparison, including matching if top of access comes into this region
+  assign PAgePMPAdrOut = ~PAltPMPAdr | TORBoundaryCross;
   assign TORMatch = PAgePMPAdrIn & PAltPMPAdr;
 
   // Naturally aligned regions
@@ -75,6 +77,8 @@ module pmpadrdec (
   // This assumes we're using at least an NA4 region, but works for any size NAPOT region.
   assign NABase = {(PMPAdr & ~NAMask[`PA_BITS-1:2]), 2'b00}; // base physical address of the pmp. 
   
+  // We only need to check if the top bits match for NA4 regions. 
+  // larger regions are aligned on >= 64 bit boundaries ad have sizes of powers of 2, so our aligned accesses will always be inside them.
   assign NAMatch = &((NABase ~^ PhysicalAddress) | NAMask | {{(`PA_BITS-3){1'b0}}, (Size == 2'b11), 2'b00}); // check if upper bits of base address match, match for 64 bit accesses coming across into this region, and ignore lower bits corresponding to inside the memory range
 
   assign Match = (AdrMode == TOR) ? TORMatch : 
