@@ -106,6 +106,11 @@ logic [3:0] dummy;
         "coremark":                       tests = coremark;
         "fpga":                           tests = fpga;
         "ahb" :                           tests = ahb;
+        "coverage64gc" :                  tests = coverage64gc;
+        "arch64zba":     if (`ZBA_SUPPORTED) tests = arch64zba;
+        "arch64zbb":     if (`ZBB_SUPPORTED) tests = arch64zbb;
+        "arch64zbc":     if (`ZBC_SUPPORTED) tests = arch64zbc;
+        "arch64zbs":     if (`ZBS_SUPPORTED) tests = arch64zbs;
       endcase 
     end else begin // RV32
       case (TEST)
@@ -130,7 +135,10 @@ logic [3:0] dummy;
         "wally32periph":                   tests = wally32periph;
         "embench":                        tests = embench;
         "coremark":                       tests = coremark;
-        "arch32ba":     if (`ZBA_SUPPORTED) tests = arch32ba;
+        "arch32zba":     if (`ZBA_SUPPORTED) tests = arch32zba;
+        "arch32zbb":     if (`ZBB_SUPPORTED) tests = arch32zbb;
+        "arch32zbc":     if (`ZBC_SUPPORTED) tests = arch32zbc;
+        "arch32zbs":     if (`ZBS_SUPPORTED) tests = arch32zbs;
       endcase
     end
     if (tests.size() == 0) begin
@@ -142,7 +150,7 @@ logic [3:0] dummy;
   string signame, memfilename, pathname, objdumpfilename, adrstr, outputfile;
   integer outputFilePointer;
 
-  logic [31:0] GPIOPinsIn, GPIOPinsOut, GPIOPinsEn;
+  logic [31:0] GPIOIN, GPIOOUT, GPIOEN;
   logic        UARTSin, UARTSout;
 
   logic        SDCCLK;
@@ -161,7 +169,7 @@ logic [3:0] dummy;
   logic 	   InReset;
 
   // instantiate device to be tested
-  assign GPIOPinsIn = 0;
+  assign GPIOIN = 0;
   assign UARTSin = 1;
 
   if(`EXT_MEM_SUPPORTED) begin
@@ -191,7 +199,7 @@ logic [3:0] dummy;
 
   wallypipelinedsoc dut(.clk, .reset_ext, .reset, .HRDATAEXT,.HREADYEXT, .HRESPEXT,.HSELEXT,
                         .HCLK, .HRESETn, .HADDR, .HWDATA, .HWSTRB, .HWRITE, .HSIZE, .HBURST, .HPROT,
-                        .HTRANS, .HMASTLOCK, .HREADY, .TIMECLK(1'b0), .GPIOPinsIn, .GPIOPinsOut, .GPIOPinsEn,
+                        .HTRANS, .HMASTLOCK, .HREADY, .TIMECLK(1'b0), .GPIOIN, .GPIOOUT, .GPIOEN,
                         .UARTSin, .UARTSout, .SDCCmdIn, .SDCCmdOut, .SDCCmdOE, .SDCDatIn, .SDCCLK); 
 
   // Track names of instructions
@@ -299,20 +307,22 @@ logic [3:0] dummy;
           testadrNoBase = (begin_signature_addr - `UNCORE_RAM_BASE)/(`XLEN/8);
           #600; // give time for instructions in pipeline to finish
           if (TEST == "embench") begin
-			// Writes contents of begin_signature to .sim.output file
-			// this contains instret and cycles for start and end of test run, used by embench python speed script to calculate embench speed score
-			// also begin_signature contains the results of the self checking mechanism, which will be read by the python script for error checking
-			$display("Embench Benchmark: %s is done.", tests[test]);
-			if (riscofTest) outputfile = {pathname, tests[test], "/ref/ref.sim.output"};
-			else outputfile = {pathname, tests[test], ".sim.output"};
-			outputFilePointer = $fopen(outputfile);
-			i = 0;
-			while ($unsigned(i) < $unsigned(5'd5)) begin
-              $fdisplayh(outputFilePointer, DCacheFlushFSM.ShadowRAM[testadr+i]);
-              i = i + 1;
-			end
-			$fclose(outputFilePointer);
-			$display("Embench Benchmark: created output file: %s", outputfile);
+            // Writes contents of begin_signature to .sim.output file
+            // this contains instret and cycles for start and end of test run, used by embench python speed script to calculate embench speed score
+            // also begin_signature contains the results of the self checking mechanism, which will be read by the python script for error checking
+            $display("Embench Benchmark: %s is done.", tests[test]);
+            if (riscofTest) outputfile = {pathname, tests[test], "/ref/ref.sim.output"};
+            else outputfile = {pathname, tests[test], ".sim.output"};
+            outputFilePointer = $fopen(outputfile);
+            i = 0;
+            while ($unsigned(i) < $unsigned(5'd5)) begin
+                    $fdisplayh(outputFilePointer, DCacheFlushFSM.ShadowRAM[testadr+i]);
+                    i = i + 1;
+            end
+            $fclose(outputFilePointer);
+            $display("Embench Benchmark: created output file: %s", outputfile);
+          end else if (TEST == "coverage64gc") begin
+            $display("Coverage tests don't get checked");
           end else begin 
 			// for tests with no self checking mechanism, read .signature.output file and compare to check for errors
 			// clear signature to prevent contamination from previous tests

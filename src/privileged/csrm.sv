@@ -72,30 +72,30 @@ module csrm #(parameter
   MEDELEG_MASK = ~(ZERO | `XLEN'b1 << 11),
   MIDELEG_MASK = 12'h222 // we choose to not make machine interrupts delegable
 ) (
-  input  logic 	            clk, reset, 
-  input  logic 	            InstrValidNotFlushedM, 
-  input  logic 	            CSRMWriteM, MTrapM,
-  input  logic [11:0] 	    CSRAdrM,
-  input  logic [`XLEN-1:0]  NextEPCM, NextCauseM, NextMtvalM, MSTATUS_REGW, MSTATUSH_REGW,
-  input  logic [`XLEN-1:0]  CSRWriteValM,
-  input  logic [11:0] 	     MIP_REGW, MIE_REGW,
-  output logic [`XLEN-1:0]  CSRMReadValM, MTVEC_REGW,
-  output logic [`XLEN-1:0] MEPC_REGW,    
-  output logic [31:0]       MCOUNTEREN_REGW, MCOUNTINHIBIT_REGW, 
-  output logic [`XLEN-1:0] MEDELEG_REGW,
-  output logic [11:0]      MIDELEG_REGW,
-  output var logic [7:0]    PMPCFG_ARRAY_REGW[`PMP_ENTRIES-1:0],
-  output var logic [`XLEN-1:0] PMPADDR_ARRAY_REGW [`PMP_ENTRIES-1:0],
-  output logic 	            WriteMSTATUSM, WriteMSTATUSHM,
-  output logic 	            IllegalCSRMAccessM, IllegalCSRMWriteReadonlyM
+  input  logic                    clk, reset, 
+  input  logic                    InstrValidNotFlushedM, 
+  input  logic                    CSRMWriteM, MTrapM,
+  input  logic [11:0]             CSRAdrM,
+  input  logic [`XLEN-1:0]        NextEPCM, NextCauseM, NextMtvalM, MSTATUS_REGW, MSTATUSH_REGW,
+  input  logic [`XLEN-1:0]        CSRWriteValM,
+  input  logic [11:0]             MIP_REGW, MIE_REGW,
+  output logic [`XLEN-1:0]        CSRMReadValM, MTVEC_REGW,
+  output logic [`XLEN-1:0]        MEPC_REGW,    
+  output logic [31:0]             MCOUNTEREN_REGW, MCOUNTINHIBIT_REGW, 
+  output logic [`XLEN-1:0]        MEDELEG_REGW,
+  output logic [11:0]             MIDELEG_REGW,
+  output var logic [7:0]          PMPCFG_ARRAY_REGW[`PMP_ENTRIES-1:0],
+  output var logic [`PA_BITS-3:0] PMPADDR_ARRAY_REGW [`PMP_ENTRIES-1:0],
+  output logic                    WriteMSTATUSM, WriteMSTATUSHM,
+  output logic                    IllegalCSRMAccessM, IllegalCSRMWriteReadonlyM
 );
 
-  logic [`XLEN-1:0]         MISA_REGW, MHARTID_REGW;
-  logic [`XLEN-1:0] MSCRATCH_REGW;
-  logic [`XLEN-1:0] MCAUSE_REGW, MTVAL_REGW;
-  logic                     WriteMTVECM, WriteMEDELEGM, WriteMIDELEGM;
-  logic                     WriteMSCRATCHM, WriteMEPCM, WriteMCAUSEM, WriteMTVALM;
-  logic                     WriteMCOUNTERENM, WriteMCOUNTINHIBITM;
+  logic [`XLEN-1:0]               MISA_REGW, MHARTID_REGW;
+  logic [`XLEN-1:0]               MSCRATCH_REGW;
+  logic [`XLEN-1:0]               MCAUSE_REGW, MTVAL_REGW;
+  logic                           WriteMTVECM, WriteMEDELEGM, WriteMIDELEGM;
+  logic                           WriteMSCRATCHM, WriteMEPCM, WriteMCAUSEM, WriteMTVALM;
+  logic                           WriteMCOUNTERENM, WriteMCOUNTINHIBITM;
 
  // There are PMP_ENTRIES = 0, 16, or 64 PMPADDR registers, each of which has its own flop
   genvar i;
@@ -113,7 +113,7 @@ module csrm #(parameter
         assign ADDRLocked[i] = PMPCFG_ARRAY_REGW[i][7] | (PMPCFG_ARRAY_REGW[i+1][7] & PMPCFG_ARRAY_REGW[i+1][4:3] == 2'b01);
       
       assign WritePMPADDRM[i] = (CSRMWriteM & (CSRAdrM == (PMPADDR0+i))) & InstrValidNotFlushedM & ~ADDRLocked[i];
-      flopenr #(`XLEN) PMPADDRreg(clk, reset, WritePMPADDRM[i], CSRWriteValM, PMPADDR_ARRAY_REGW[i]);
+      flopenr #(`PA_BITS-2) PMPADDRreg(clk, reset, WritePMPADDRM[i], CSRWriteValM[`PA_BITS-3:0], PMPADDR_ARRAY_REGW[i]);
       if (`XLEN==64) begin
         assign WritePMPCFGM[i] = (CSRMWriteM & (CSRAdrM == (PMPCFG0+2*(i/8)))) & InstrValidNotFlushedM & ~CFGLocked[i];
         flopenr #(8) PMPCFGreg(clk, reset, WritePMPCFGM[i], CSRWriteValM[(i%8)*8+7:(i%8)*8], PMPCFG_ARRAY_REGW[i]);
@@ -171,7 +171,7 @@ module csrm #(parameter
     entry = '0;
     IllegalCSRMAccessM = !(`S_SUPPORTED) & (CSRAdrM == MEDELEG | CSRAdrM == MIDELEG); // trap on DELEG register access when no S or N-mode
     if (CSRAdrM >= PMPADDR0 & CSRAdrM < PMPADDR0 + `PMP_ENTRIES) // reading a PMP entry
-      CSRMReadValM = PMPADDR_ARRAY_REGW[CSRAdrM - PMPADDR0];
+      CSRMReadValM = {{(`XLEN-(`PA_BITS-2)){1'b0}}, PMPADDR_ARRAY_REGW[CSRAdrM - PMPADDR0]};
     else if (CSRAdrM >= PMPCFG0 & CSRAdrM < PMPCFG0 + `PMP_ENTRIES/4) begin
       if (`XLEN==64) begin
         entry = ({CSRAdrM[11:1], 1'b0} - PMPCFG0)*4; // disregard odd entries in RV64

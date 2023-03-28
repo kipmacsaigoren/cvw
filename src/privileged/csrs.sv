@@ -44,23 +44,23 @@ module csrs #(parameter
   STIMECMP = 12'h14D,
   STIMECMPH = 12'h15D,
   SATP = 12'h180) (
-  input  logic 	           clk, reset, 
-  input  logic 	           InstrValidNotFlushedM, 
-  input  logic 	           CSRSWriteM, STrapM,
-  input  logic [11:0] 	   CSRAdrM,
+  input  logic             clk, reset, 
+  input  logic             InstrValidNotFlushedM, 
+  input  logic             CSRSWriteM, STrapM,
+  input  logic [11:0]      CSRAdrM,
   input  logic [`XLEN-1:0] NextEPCM, NextCauseM, NextMtvalM, SSTATUS_REGW, 
-  input  logic 	           STATUS_TVM,
+  input  logic             STATUS_TVM,
   input  logic             MCOUNTEREN_TM, // TM bit (1) of MCOUNTEREN; cause illegal instruction when trying to access STIMECMP if clear
   input  logic [`XLEN-1:0] CSRWriteValM,
-  input  logic [1:0] 	     PrivilegeModeW,
+  input  logic [1:0]       PrivilegeModeW,
   output logic [`XLEN-1:0] CSRSReadValM, STVEC_REGW,
   output logic [`XLEN-1:0] SEPC_REGW,      
   output logic [31:0]      SCOUNTEREN_REGW, 
   output logic [`XLEN-1:0] SATP_REGW,
   input  logic [11:0]      MIP_REGW, MIE_REGW, MIDELEG_REGW,
   input  logic [63:0]      MTIME_CLINT,
-  output logic 	           WriteSSTATUSM,
-  output logic 	           IllegalCSRSAccessM,
+  output logic             WriteSSTATUSM,
+  output logic             IllegalCSRSAccessM,
   output logic             STimerInt
 );
 
@@ -68,13 +68,13 @@ module csrs #(parameter
   localparam ZERO = {(`XLEN){1'b0}};
   localparam SEDELEG_MASK = ~(ZERO | `XLEN'b111 << 9);
 
-  logic               WriteSTVECM;
-  logic               WriteSSCRATCHM, WriteSEPCM;
-  logic               WriteSCAUSEM, WriteSTVALM, WriteSATPM, WriteSCOUNTERENM;
-  logic               WriteSTIMECMPM, WriteSTIMECMPHM;
-  logic [`XLEN-1:0] SSCRATCH_REGW, STVAL_REGW;
-  logic [`XLEN-1:0] SCAUSE_REGW;      
-  logic [63:0]      STIMECMP_REGW;
+  logic                    WriteSTVECM;
+  logic                    WriteSSCRATCHM, WriteSEPCM;
+  logic                    WriteSCAUSEM, WriteSTVALM, WriteSATPM, WriteSCOUNTERENM;
+  logic                    WriteSTIMECMPM, WriteSTIMECMPHM;
+  logic [`XLEN-1:0]        SSCRATCH_REGW, STVAL_REGW;
+  logic [`XLEN-1:0]        SCAUSE_REGW;      
+  logic [63:0]             STIMECMP_REGW;
   
   // write enables
   // *** can InstrValidNotFlushed be factored out of all these writes into CSRWriteM?
@@ -99,11 +99,11 @@ module csrs #(parameter
     flopenr #(`XLEN) SATPreg(clk, reset, WriteSATPM, CSRWriteValM, SATP_REGW);
   else
     assign SATP_REGW = 0; // hardwire to zero if virtual memory not supported
-  flopens #(32)   SCOUNTERENreg(clk, reset, WriteSCOUNTERENM, CSRWriteValM[31:0], SCOUNTEREN_REGW);
-  if (`SSTC_SUPPORTED) begin
-    if (`XLEN == 64)
+  flopenr #(32)   SCOUNTERENreg(clk, reset, WriteSCOUNTERENM, CSRWriteValM[31:0], SCOUNTEREN_REGW);
+  if (`SSTC_SUPPORTED) begin : sstc
+    if (`XLEN == 64) begin : sstc64
       flopenl #(`XLEN) STIMECMPreg(clk, reset, WriteSTIMECMPM, CSRWriteValM, 64'hFFFFFFFFFFFFFFFF, STIMECMP_REGW);
-    else begin
+    end else begin : sstc32
       flopenl #(`XLEN) STIMECMPreg(clk, reset, WriteSTIMECMPM, CSRWriteValM, 32'hFFFFFFFF, STIMECMP_REGW[31:0]);
       flopenl #(`XLEN) STIMECMPHreg(clk, reset, WriteSTIMECMPHM, CSRWriteValM, 32'hFFFFFFFF, STIMECMP_REGW[63:32]);
     end
@@ -123,16 +123,16 @@ module csrs #(parameter
       SSTATUS:   CSRSReadValM = SSTATUS_REGW;
       STVEC:     CSRSReadValM = STVEC_REGW;
       SIP:       CSRSReadValM = {{(`XLEN-12){1'b0}}, MIP_REGW & 12'h222 & MIDELEG_REGW}; // only read supervisor fields  
-      SIE:       CSRSReadValM = {{(`XLEN-12){1'b0}}, MIE_REGW & 12'h222}; // only read supervisor fields
+      SIE:       CSRSReadValM = {{(`XLEN-12){1'b0}}, MIE_REGW & 12'h222 & MIDELEG_REGW}; // only read supervisor fields
       SSCRATCH:  CSRSReadValM = SSCRATCH_REGW;
       SEPC:      CSRSReadValM = SEPC_REGW;
       SCAUSE:    CSRSReadValM = SCAUSE_REGW;
       STVAL:     CSRSReadValM = STVAL_REGW;
       SATP:      if (`VIRTMEM_SUPPORTED & (PrivilegeModeW == `M_MODE | ~STATUS_TVM)) CSRSReadValM = SATP_REGW;
-                  else begin
-                    CSRSReadValM = 0;
-                    if (PrivilegeModeW == `S_MODE & STATUS_TVM) IllegalCSRSAccessM = 1;
-                  end
+                 else begin
+                   CSRSReadValM = 0;
+                   if (PrivilegeModeW == `S_MODE & STATUS_TVM) IllegalCSRSAccessM = 1;
+                 end
       SCOUNTEREN:CSRSReadValM = {{(`XLEN-32){1'b0}}, SCOUNTEREN_REGW};
       STIMECMP:  if (`SSTC_SUPPORTED & (PrivilegeModeW == `M_MODE | MCOUNTEREN_TM)) CSRSReadValM = STIMECMP_REGW[`XLEN-1:0]; 
                  else begin 

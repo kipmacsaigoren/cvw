@@ -37,6 +37,7 @@ module csr #(parameter
   input  logic             FlushM, FlushW,
   input  logic             StallE, StallM, StallW,
   input  logic [31:0]      InstrM,                    // current instruction
+  input  logic [31:0]      InstrOrigM,                // Original compressed or uncompressed instruction in Memory stage for Illegal Instruction MTVAL
   input  logic [`XLEN-1:0] PCM, PC2NextF,             // program counter, next PC going to trap/return logic
   input  logic [`XLEN-1:0] SrcAM, IEUAdrM,            // SrcA and memory address from IEU
   input  logic             CSRReadM, CSRWriteM,       // read or write CSR
@@ -72,7 +73,7 @@ module csr #(parameter
   input  logic             ICacheMiss,
   input  logic             ICacheAccess,
   input  logic             sfencevmaM,
-  input  logic             FenceM,
+  input  logic             InvalidateICacheM,
   input  logic             DivBusyE,                                  // integer divide busy
   input  logic             FDivBusyE,                                 // floating point divide busy
   // outputs from CSRs
@@ -85,7 +86,7 @@ module csr #(parameter
   output logic             STATUS_MXR, STATUS_SUM, STATUS_MPRV, STATUS_TW,
   output logic [1:0]       STATUS_FS,
   output var logic [7:0]   PMPCFG_ARRAY_REGW[`PMP_ENTRIES-1:0],
-  output var logic [`XLEN-1:0] PMPADDR_ARRAY_REGW[`PMP_ENTRIES-1:0],
+  output var logic [`PA_BITS-3:0] PMPADDR_ARRAY_REGW[`PMP_ENTRIES-1:0],
   output logic [2:0]       FRM_REGW, 
   //
   output logic [`XLEN-1:0] CSRReadValW,               // value read from CSR
@@ -95,11 +96,11 @@ module csr #(parameter
 );
 
   logic [`XLEN-1:0]        CSRMReadValM, CSRSReadValM, CSRUReadValM, CSRCReadValM;
-  logic [`XLEN-1:0] CSRReadValM;  
-  logic [`XLEN-1:0] CSRSrcM;
-  logic [`XLEN-1:0] CSRRWM, CSRRSM, CSRRCM;  
-  logic [`XLEN-1:0] CSRWriteValM;
-  logic [`XLEN-1:0] MSTATUS_REGW, SSTATUS_REGW, MSTATUSH_REGW;
+  logic [`XLEN-1:0]        CSRReadValM;  
+  logic [`XLEN-1:0]        CSRSrcM;
+  logic [`XLEN-1:0]        CSRRWM, CSRRSM, CSRRCM;  
+  logic [`XLEN-1:0]        CSRWriteValM;
+  logic [`XLEN-1:0]        MSTATUS_REGW, SSTATUS_REGW, MSTATUSH_REGW;
   logic [`XLEN-1:0]        STVEC_REGW, MTVEC_REGW;
   logic [`XLEN-1:0]        MEPC_REGW, SEPC_REGW;
   logic [31:0]             MCOUNTINHIBIT_REGW, MCOUNTEREN_REGW, SCOUNTEREN_REGW;
@@ -116,7 +117,7 @@ module csr #(parameter
   logic [`XLEN-1:0]        TVecM, TrapVectorM, NextFaultMtvalM;
   logic                    MTrapM, STrapM;
   logic [`XLEN-1:0]        EPC;
-  logic 			             RetM;
+  logic                    RetM;
   logic                    SelMtvecM;
   logic [`XLEN-1:0]        TVecAlignedM;
   logic                    InstrValidNotFlushedM;
@@ -133,7 +134,7 @@ module csr #(parameter
     if (InterruptM)           NextFaultMtvalM = 0;
     else case (CauseM)
       12, 1, 3:               NextFaultMtvalM = PCM;  // Instruction page/access faults, breakpoint
-      2:                      NextFaultMtvalM = {{(`XLEN-32){1'b0}}, InstrM}; // Illegal instruction fault // *** this should probably set to the uncompressed instruction
+      2:                      NextFaultMtvalM = {{(`XLEN-32){1'b0}}, InstrOrigM}; // Illegal instruction fault 
       0, 4, 6, 13, 15, 5, 7:  NextFaultMtvalM = IEUAdrM; // Instruction misaligned, Load/Store Misaligned/page/access faults
       default:                NextFaultMtvalM = 0; // Ecall, interrupts
     endcase
@@ -152,7 +153,7 @@ module csr #(parameter
     logic VectoredM;
     logic [`XLEN-1:0] TVecPlusCauseM;
     assign VectoredM = InterruptM & (TVecM[1:0] == 2'b01);
-	  assign TVecPlusCauseM = {TVecAlignedM[`XLEN-1:6], CauseM[3:0], 2'b00}; // 64-byte alignment allows concatenation rather than addition
+    assign TVecPlusCauseM = {TVecAlignedM[`XLEN-1:6], CauseM[3:0], 2'b00}; // 64-byte alignment allows concatenation rather than addition
     mux2 #(`XLEN) trapvecmux(TVecAlignedM, TVecPlusCauseM, VectoredM, TrapVectorM);
   end else 
     assign TrapVectorM = TVecAlignedM;
@@ -210,7 +211,7 @@ module csr #(parameter
   csri   csri(.clk, .reset, .InstrValidNotFlushedM,  
     .CSRMWriteM, .CSRSWriteM, .CSRWriteValM, .CSRAdrM, 
     .MExtInt, .SExtInt, .MTimerInt, .STimerInt, .MSwInt,
-    .MIP_REGW, .MIE_REGW, .MIP_REGW_writeable);
+    .MIDELEG_REGW, .MIP_REGW, .MIE_REGW, .MIP_REGW_writeable);
 
   csrsr csrsr(.clk, .reset, .StallW, 
     .WriteMSTATUSM, .WriteMSTATUSHM, .WriteSSTATUSM, 
@@ -268,7 +269,7 @@ module csr #(parameter
       .InstrValidNotFlushedM, .LoadStallD, .StoreStallD, .CSRWriteM, .CSRMWriteM,
       .BPDirPredWrongM, .BTAWrongM, .RASPredPCWrongM, .IClassWrongM, .BPWrongM,
       .InstrClassM, .DCacheMiss, .DCacheAccess, .ICacheMiss, .ICacheAccess, .sfencevmaM,
-      .InterruptM, .ExceptionM, .FenceM, .ICacheStallF, .DCacheStallM, .DivBusyE, .FDivBusyE,
+      .InterruptM, .ExceptionM, .InvalidateICacheM, .ICacheStallF, .DCacheStallM, .DivBusyE, .FDivBusyE,
       .CSRAdrM, .PrivilegeModeW, .CSRWriteValM,
       .MCOUNTINHIBIT_REGW, .MCOUNTEREN_REGW, .SCOUNTEREN_REGW,
       .MTIME_CLINT,  .CSRCReadValM, .IllegalCSRCAccessM);
