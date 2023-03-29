@@ -109,7 +109,7 @@ module mmu #(parameter TLB_ENTRIES = 8, IMMU = 0) (
     .PMAInstrAccessFaultF, .PMALoadAccessFaultM, .PMAStoreAmoAccessFaultM);
  
   if (`PMP_ENTRIES > 0) begin : pmp
-    pmpchecker pmpchecker(.PhysicalAddress, .PrivilegeModeW, .Size
+    pmpchecker pmpchecker(.PhysicalAddress, .PrivilegeModeW, .Size,
       .PMPCFG_ARRAY_REGW, .PMPADDR_ARRAY_REGW,
       .ExecuteAccessF, .WriteAccessM, .ReadAccessM,
       .PMPInstrAccessFaultF, .PMPLoadAccessFaultM, .PMPStoreAmoAccessFaultM);
