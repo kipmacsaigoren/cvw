@@ -1,38 +1,40 @@
-0fffffff # Test 12.3.2.2.1: writeback of value written to PMPADDR0
+0fffffff # test 12.3.2.2.1: writeback of value written to pmpaddr0
 00000000 
-20040001 # writeback of value written to PMPADDR1
+20040081 # writeback of value written to pmpaddr1
 00000000
-2004003f # writeback of value written to PMPADDR2
+20040084 # writeback of value written to pmpaddr2
 00000000
-20040080 # writeback of value written to PMPADDR3
+20040080 # writeback of value written to pmpaddr3
 00000000
-20040081 # writeback of value written to PMPADDR4
+200400c1 # writeback of value written to pmpaddr4
 00000000
-20040084 # writeback of value written to PMPADDR5
+2004013f # writeback of value written to pmpaddr5
 00000000
-200400c1 # writeback of value written to PMPADDR6
+20040000 # writeback of value written to pmpaddr6
 00000000
-2004013f # writeback of value written to PMPADDR7
+20040002 # writeback of value written to pmpaddr7
 00000000
-2fffffff # writeback of value written to PMPADDR15
+20040003 # writeback of value written to pmpaddr8
 00000000
-1609001b # writeback of value written to PMPCFG0
-18900c00
-00000000 # writeback of value written to PMPCFG2
+2fffffff # writeback of value written to pmpaddr15
+00000000
+160c001b # writeback of value written to pmpcfg0
+00111890
+00000009 # writeback of value written to pmpcfg2
 1f000000
-1609001b # old value of PMPCFG0 after failed write to locked out region
-18900c00
-200400c1 # old value of PMPADDR6 after failed write to locked out region
+160c001b # old value of pmpcfg0 after failed write to locked out region
+00111890
+200400c1 # old value of pmpaddr5 after failed write to locked out region
 00000000
-00000005 # Test 12.3.2.2.2: read test with access fault to region with L=1, R=0
+00000005 # test 12.3.2.2.2: read test with access fault to region with l=1, r=0
 00000000
 00000bad
 00000000
-00600dbb # read test success from region with L=X=W=R=0
+00600dbb # read test success from region with l=x=w=r=0
 00000000
-0000000b # Test 12.3.2.2.3: ecall from going to S mode from M mode
+0000000b # test 12.3.2.2.3: ecall from going to s mode from m mode
 00000000
-00600d15 # read test success from RW range (confirming previous write)
+00600d15 # read test success from rw range (confirming previous write)
 00000000
 00600d02 # read test success from outside the edge of a read only range
 00000000
@@ -54,32 +56,30 @@
 00000000
 00000111 # execute sucess when X=1
 00000000
-00000005 # read test with access fault when access begins in allowed region and ends in protected NA region
+00000005 # read test with access fault across bottom NA
 00000000
 00000bad
 00000000
-00000007 # write test with access fault when access begins in allowed region and ends in protected TOR region
+00000005 # read test with access fault across both protected NA
 00000000
-00000007 # write test with access fault when access begins in protected TOR region and ends in allowed region
+00000bad
 00000000
-00000009 # ecall from terminating tests in S mode
+00600dcc # successful read across two allowed boundaries NA
 00000000
-deadbeef
-deadbeef
-deadbeef
-deadbeef
-deadbeef
-deadbeef
-deadbeef
-deadbeef
-deadbeef
-deadbeef
-deadbeef
-deadbeef
-deadbeef
-deadbeef
-deadbeef
-deadbeef
+00000007 # write test with access fault across top NA
+00000000
+00000007 # write test with access fault across bottom TOR
+00000000
+00000005 # read test with access fault across both protected TOR
+00000000
+00000bad
+00000000
+00600daa # successful read across two allowed boundaries TOR
+00000000
+00000007 # write test with access fault across top TOR
+00000000
+00000009 # ecall from terminating tests in s mode
+00000000
 deadbeef
 deadbeef
 deadbeef

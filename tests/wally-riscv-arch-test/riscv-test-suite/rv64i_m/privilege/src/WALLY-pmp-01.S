@@ -59,34 +59,36 @@ test_cases:
 # Test 12.3.2.2.1 Config: Write known values and set PMP config according to table 12.4 in the *** riscv book, copied below
 
 # write pmpaddr regs. Each of these should output the value of the pmpaddr after being written.
-#                                          | Reg   | pmpaddr     | pmpcfg    | L | A     | X | W | R | Comments 		                |
-.8byte 0x0, 0x0FFFFFFF, write_pmpaddr_0  # | 0     | 0x0FFFFFFF  | 1B        | 0 | NAPOT | 0 | 1 | 1 | I/O 00000000-7FFFFFFF RW 		|
-.8byte 0x1, 0x20040001, write_pmpaddr_1  # | 1     | 0x20040001  | 00        | 0 | OFF   | 0 | 0 | 0 |    		                    |
-.8byte 0x2, 0x2004003F, write_pmpaddr_2  # | 2     | 0x20040003  | 09        | 0 | TOR   | 0 | 0 | 1 | 80100004-8010000C R 		    |
-.8byte 0x3, 0x20040080, write_pmpaddr_3  # | 3     | 0x20040080  | 16        | 0 | NA4   | 1 | 1 | 0 | 80100200-80100203 XW 		    |
-.8byte 0x4, 0x20040081, write_pmpaddr_4  # | 4     | 0x20040081  | 00        | 0 | OFF   | 0 | 0 | 0 |    		                    |
-.8byte 0x5, 0x20040084, write_pmpaddr_5  # | 5     | 0x20040084  | 0C        | 0 | TOR   | 1 | 0 | 0 | 80100204-80100210 X 		    |
-.8byte 0x6, 0x200400C1, write_pmpaddr_6  # | 6     | 0x200400C1  | 90        | 1 | NA4   | 0 | 0 | 0 | 80100304-80100307 locked out 	|
-.8byte 0x7, 0x2004013F, write_pmpaddr_7  # | 7     | 0x2004013F  | 18        | 0 | NAPOT | 0 | 0 | 0 | 80100400-801004FF no access 	|
+#                                          | Reg   | pmpaddr     | pmpcfg    | L | A     | X | W | R | Comments 		            |
+.8byte 0x0, 0x0FFFFFFF, write_pmpaddr_0  # | 0     | 0x0FFFFFFF  | 1B        | 0 | NAPOT | 0 | 1 | 1 | I/O 00000000-7FFFFFFF RW 	|
+.8byte 0x1, 0x20040081, write_pmpaddr_1  # | 1     | 0x20040081  | 00        | 0 | OFF   | 0 | 0 | 0 |    		                    |
+.8byte 0x2, 0x20040084, write_pmpaddr_2  # | 2     | 0x20040084  | 0C        | 0 | TOR   | 1 | 0 | 0 | 80100204-80100210 X 		    |
+.8byte 0x3, 0x20040080, write_pmpaddr_3  # | 3     | 0x20040080  | 16        | 0 | NA4   | 1 | 1 | 0 | 80100200-80100203 XW 		|
+.8byte 0x4, 0x200400C1, write_pmpaddr_4  # | 4     | 0x200400C1  | 90        | 1 | NA4   | 0 | 0 | 0 | 80100304-80100307 locked out |
+.8byte 0x5, 0x2004013F, write_pmpaddr_5  # | 5     | 0x2004013F  | 18        | 0 | NAPOT | 0 | 0 | 0 | 80100400-801004FF no access 	|
+.8byte 0x6, 0x20040000, write_pmpaddr_6  # | 6     | 0x20040000  | 11        | 0 | NA4   | 0 | 0 | 1 | 80100000-80100003 R          |
+.8byte 0x7, 0x20040002, write_pmpaddr_7  # | 7     | 0x20040002  | 00        | 0 | OFF   | 0 | 0 | 0 |                              |
+.8byte 0x8, 0x20040003, write_pmpaddr_8  # | 8     | 0x20040003  | 09        | 0 | TOR   | 0 | 0 | 1 | 80100008-8010000C R           |
 # Pmpaddr 7-14 are all zeroed out in this test, so they don't need writes.
 .8byte 0xF, 0x2FFFFFFF, write_pmpaddr_15 # | 15    | 0x2FFFFFFF  | 1F        | 0 | NAPOT | 1 | 1 | 1 | Main mem 80000000-FFFFFFFF RWX|
 
 # write pmpcfg regs with the information in the table above. this should also write the value of these registers to the output.
-.8byte 0x0, 0x18900C001609001B, write_pmpcfg_0 # write pmpcfg0, output 0x18900C001609001B
-.8byte 0x2, 0x1F00000000000000, write_pmpcfg_2 # write pmpcfg2, output 0x1F00000000000000
+.8byte 0x0, 0x00111890160C001B, write_pmpcfg_0 # write pmpcfg0, output 0x00111890160C001B
+.8byte 0x2, 0x1F00000000000009, write_pmpcfg_2 # write pmpcfg2, output 0x1F00000000000009
 
 # write known values to memory where W=0. This should be possible since we're in machine mode.
-.8byte 0x80100010, 0x600DAA, write64_test # write to pmpaddr 1-2 range
-.8byte 0x80100400, 0x600DBB, write64_test # write to pmpaddr 6 range
+.8byte 0x80100008, 0x600DAA, write64_test # write to pmpaddr 7-8 range
+.8byte 0x80100400, 0x600DBB, write64_test # write to pmpaddr 5 range
+.8byte 0x80100000, 0x600DCC, write64_test # write to pmpaddr 6 range
 
 # Write executable code to regions where X = 0, 1 in main memory
-.8byte 0x80100200, 0x0000806711100393, write64_test # write executable code for "li x7, 0x111; ret" to region with X=1 (PMP4)
-.8byte 0x80100020, 0x0000806711100393, write64_test # Write same executable code to region with X=0 (PMP2)
+.8byte 0x80100200, 0x0000806711100393, write64_test # write executable code for "li x7, 0x111; ret" to region with X=1 (PMP15)
+.8byte 0x80100440, 0x0000806711100393, write64_test # Write same executable code to region with X=0 (PMP5)
 
 # attempt to write to pmpaddr5 and pmp5cfg after lockout
-.8byte 0x0, 0x18FF0C001609001B, write_pmpcfg_0 # attempt to edit only pmp6cfg after lockout. 
-# instruction ignored, output is 0x18900C001609001B, NOT 0x18900C001609001B
-.8byte 0x6, 0xFFFFFFFF, write_pmpaddr_6 # attempt to edit pmpaddr6 after lockout.
+.8byte 0x0, 0x001118FF160C001B, write_pmpcfg_0 # attempt to edit only pmp6cfg after lockout. 
+# instruction ignored, output is 0x00111890160C001B, NOT 0x001118FF160C001B
+.8byte 0x4, 0xFFFFFFFF, write_pmpaddr_4 # attempt to edit pmpaddr6 after lockout.
 # instruction ignored, output is 0x200400c0, NOT 0xFFFFFFFF
 
 # Test 12.3.2.2.2 Machine mode access
@@ -102,21 +104,21 @@ test_cases:
 .8byte 0x80200000, 0x600D15, read64_test # confirm write with read
 
 # test a write followed by a read on the edges of a read-only range
-.8byte 0x800FFFF8, 0x600D02, write64_test # Write "good value" just below read-only range (PMP2)
+.8byte 0x800FFFF8, 0x600D02, write64_test # Write "good value" just below read-only range (PMP6)
 .8byte 0x800FFFF8, 0x600D02, read64_test # confirm write with read
-.8byte 0x80100100, 0x600D12, write64_test # Write "good value" just above read-only range (PMP2)
-.8byte 0x80100100, 0x600D12, read64_test # confirm write with read
+.8byte 0x8010010C, 0x600D12, write32_test # Write "good value" just above read-only range (PMP2)
+.8byte 0x8010010C, 0x600D12, read32_test # confirm write with read
 
-# test a read from each read only range verify a write causes an access fault
-.8byte 0x80100010, 0xBAD, write64_test # Write fault in read-only range (PMP2)
-.8byte 0x80100010, 0x600DAA, read64_test # read correct value out
+# test a read from each read only range to verify a write causes an access fault
+.8byte 0x80100008, 0xBAD, write32_test # Write fault in read-only range (PMP 8)
+.8byte 0x80100008, 0x600DAA, read32_test # read correct value out
 
 # test read and write fault on region with no access
-.8byte 0x80100208, 0x600D15, write64_test # Write fault on no-access range (PMP6)
-.8byte 0x80100208, 0x600D15, read64_test # read fault on no-access range (PMP6)
+.8byte 0x80100400, 0x600D15, write64_test # Write fault on no-access range (PMP5)
+.8byte 0x80100400, 0x600D15, read64_test # read fault on no-access range (PMP5)
 
 # test jalr to region with X=0 causes access fault
-.8byte 0x80100020, 0xbad, executable_test # execute fault on no-execute range (PMP2)
+.8byte 0x80100440, 0xbad, executable_test # execute fault on no-execute range (PMP2)
 
 # test jalr to region with X=1 returns successfully
 .8byte 0x80100200, 0x111, executable_test # execute success when X=1
@@ -124,11 +126,15 @@ test_cases:
 # accesses across PMP region boundaries
 # These test to make sure that accesses give a match for the regions they both begin and end in
 # the access will be accepted or denied based on whichever of those matches has higher priority
-
-.8byte 0x80100300, 0x0, read64_test # access fault when access begins in allowed region and goes into protected NA region.
-# since NA regions are naturally aligned and their sizes of powers of 2
-# it's impossible to begin in an NA region with a correctly aligned access and then end outside of it.
-.8byte 0x80100000, 0xbad, write64_test # access fault when access begins in allowed region and goes into protected TOR region.
-.8byte 0x80100008, 0xbad, write64_test # access fault when access begins in protected TOR region and goes into allowed region.
+                                        # Beginning   | Ending    | Type  | Boundary  | Result
+                                        # --------------------------------------------------------------
+.8byte 0x80100300, 0x0, read64_test     # Allowed     | Protected | NA    | Bottom    | AccessFault
+.8byte 0x80100200, 0x0, read64_test     # Protected   | Protected | NA    | Both      | AccessFault
+.8byte 0x80100000, 0x0, read64_test     # Allowed     | Allowed   | NA    | Both      | Successful Access
+.8byte 0x80100000, 0x0, write64_test    # Protected   | Allowed   | NA    | Top       | AccessFault
+.8byte 0x80100200, 0x0, write64_test    # Allowed     | Protected | TOR   | Bottom    | AccessFault
+.8byte 0x80100200, 0x0, read64_test     # Protected   | Protected | TOR   | Both      | AccessFault
+.8byte 0x80100008, 0x0, read64_test     # Allowed     | Allowed   | TOR   | Both      | Successful Access
+.8byte 0x80100008, 0x0, write64_test    # Protected   | Allowed   | TOR   | Top       | AccessFault
 
 .8byte 0x0, 0x0, terminate_test // terminate tests
