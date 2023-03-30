@@ -16,12 +16,14 @@
 00000000
 20040003 # writeback of value written to pmpaddr8
 00000000
-2fffffff # writeback of value written to pmpaddr15
+2fffffff # writeback of value written to pmpaddr14
+00000000
+2004017f # writeback of value written to pmpaddr15
 00000000
 160c001b # writeback of value written to pmpcfg0
 00111890
 00000009 # writeback of value written to pmpcfg2
-1f000000
+101f0000
 160c001b # old value of pmpcfg0 after failed write to locked out region
 00111890
 200400c1 # old value of pmpaddr5 after failed write to locked out region
@@ -64,7 +66,9 @@
 00000000
 00000bad
 00000000
-00600dcc # successful read across two allowed boundaries NA
+00000005 # read test with access fault across both allowed TOR
+00000000
+00000bad
 00000000
 00000007 # write test with access fault across top NA
 00000000
@@ -74,8 +78,11 @@
 00000000
 00000bad
 00000000
-00600daa # successful read across two allowed boundaries TOR
+00000005 # read test with access fault across both allowed TOR
 00000000
+00000bad
+00000000
+00600ddd # successful read across boundary when higher priority non boundary-crossing pmp is active.
 00000007 # write test with access fault across top TOR
 00000000
 00000009 # ecall from terminating tests in s mode

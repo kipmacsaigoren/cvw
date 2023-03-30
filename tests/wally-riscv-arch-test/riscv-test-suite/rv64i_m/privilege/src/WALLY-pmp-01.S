@@ -68,18 +68,20 @@ test_cases:
 .8byte 0x5, 0x2004013F, write_pmpaddr_5  # | 5     | 0x2004013F  | 18        | 0 | NAPOT | 0 | 0 | 0 | 80100400-801004FF no access 	|
 .8byte 0x6, 0x20040000, write_pmpaddr_6  # | 6     | 0x20040000  | 11        | 0 | NA4   | 0 | 0 | 1 | 80100000-80100003 R          |
 .8byte 0x7, 0x20040002, write_pmpaddr_7  # | 7     | 0x20040002  | 00        | 0 | OFF   | 0 | 0 | 0 |                              |
-.8byte 0x8, 0x20040003, write_pmpaddr_8  # | 8     | 0x20040003  | 09        | 0 | TOR   | 0 | 0 | 1 | 80100008-8010000C R           |
-# Pmpaddr 7-14 are all zeroed out in this test, so they don't need writes.
-.8byte 0xF, 0x2FFFFFFF, write_pmpaddr_15 # | 15    | 0x2FFFFFFF  | 1F        | 0 | NAPOT | 1 | 1 | 1 | Main mem 80000000-FFFFFFFF RWX|
+.8byte 0x8, 0x20040003, write_pmpaddr_8  # | 8     | 0x20040003  | 09        | 0 | TOR   | 0 | 0 | 1 | 80100008-8010000C R          |
+# intermediate PMPs are all zeroed out in this test, so they don't need writes.
+.8byte 0xE, 0x2FFFFFFF, write_pmpaddr_14 # | 14    | 0x2FFFFFFF  | 1F        | 0 | NAPOT | 1 | 1 | 1 | Main mem 80000000-FFFFFFFF RWX|
+.8byte 0xF, 0x2004017F, write_pmpaddr_15 # | 15    | 0x2004017F  | 10        | 0 | NA4   | 0 | 0 | 0 | 80100500-80100503 no access  |
 
 # write pmpcfg regs with the information in the table above. this should also write the value of these registers to the output.
 .8byte 0x0, 0x00111890160C001B, write_pmpcfg_0 # write pmpcfg0, output 0x00111890160C001B
-.8byte 0x2, 0x1F00000000000009, write_pmpcfg_2 # write pmpcfg2, output 0x1F00000000000009
+.8byte 0x2, 0x101F000000000009, write_pmpcfg_2 # write pmpcfg2, output 0x101F000000000009
 
 # write known values to memory where W=0. This should be possible since we're in machine mode.
 .8byte 0x80100008, 0x600DAA, write64_test # write to pmpaddr 7-8 range
 .8byte 0x80100400, 0x600DBB, write64_test # write to pmpaddr 5 range
 .8byte 0x80100000, 0x600DCC, write64_test # write to pmpaddr 6 range
+.8byte 0x80100500, 0x600DDD, write64_test # write to pmpaddr 15 range
 
 # Write executable code to regions where X = 0, 1 in main memory
 .8byte 0x80100200, 0x0000806711100393, write64_test # write executable code for "li x7, 0x111; ret" to region with X=1 (PMP15)
@@ -126,15 +128,22 @@ test_cases:
 # accesses across PMP region boundaries
 # These test to make sure that accesses give a match for the regions they both begin and end in
 # the access will be accepted or denied based on whichever of those matches has higher priority
+# this testing satisfies the "Priority and Matching Logic" header of section 3.7.1 in the priv spec:
+
+# All of these should cause an access fault no matter the order of the regions, 
+# since none of them have regions that completely match the whole access
                                         # Beginning   | Ending    | Type  | Boundary  | Result
                                         # --------------------------------------------------------------
 .8byte 0x80100300, 0x0, read64_test     # Allowed     | Protected | NA    | Bottom    | AccessFault
 .8byte 0x80100200, 0x0, read64_test     # Protected   | Protected | NA    | Both      | AccessFault
-.8byte 0x80100000, 0x0, read64_test     # Allowed     | Allowed   | NA    | Both      | Successful Access
+.8byte 0x80100000, 0x0, read64_test     # Allowed     | Allowed   | NA    | Both      | AccessFault
 .8byte 0x80100000, 0x0, write64_test    # Protected   | Allowed   | NA    | Top       | AccessFault
 .8byte 0x80100200, 0x0, write64_test    # Allowed     | Protected | TOR   | Bottom    | AccessFault
 .8byte 0x80100200, 0x0, read64_test     # Protected   | Protected | TOR   | Both      | AccessFault
-.8byte 0x80100008, 0x0, read64_test     # Allowed     | Allowed   | TOR   | Both      | Successful Access
+.8byte 0x80100008, 0x0, read64_test     # Allowed     | Allowed   | TOR   | Both      | AccessFault
 .8byte 0x80100008, 0x0, write64_test    # Protected   | Allowed   | TOR   | Top       | AccessFault
+
+# This test shuold pass even though we cross a boundary since there is a higer priority match that doesn't cross boundaries
+.8byte 0x80100500, 0x600DDD, read64_test 
 
 .8byte 0x0, 0x0, terminate_test // terminate tests
