@@ -50,7 +50,7 @@ module pmpadrdec (
 
   logic                         TORMatch, NAMatch;
   logic                         PAltPMPAdr;
-  logic                         TORBoundaryCross;
+  logic                         TORBoundaryCross, NABoundaryCross;
   logic [`PA_BITS-1:0]          CurrentAdrFull;
   logic [1:0]                   AdrMode;
 
@@ -70,14 +70,14 @@ module pmpadrdec (
 
   // Naturally aligned regions
   logic [`PA_BITS-3:0] NAMask, NABase, NAMatchIntermediate;
+  // the bottom two bits of both the phyical address and the pmpaddr are ignored since they're always zeroed out.
 
   assign NAMask = (PMPAdr + {{(`PA_BITS-3){1'b0}}, (AdrMode == NAPOT)}) ^ PMPAdr;
-  // form a mask where the bottom k bits are 1, corresponding to a size of 2^k bytes for this memory region. 
-  // This assumes we're using at least an NA4 region, but works for any size NAPOT region.
-  assign NABase = (PMPAdr & ~NAMask); // base physical address of the pmp. 
-  
-  // We only need to check if the top bits match for NA4 regions. 
-  assign NAMatch = &((NABase ~^ PhysicalAddress[`PA_BITS-1:2]) | NAMask | {{(`PA_BITS-3){1'b0}}, (Size == 2'b11)}); // check if upper bits of base address match, match for 64 bit accesses coming across into this region, and ignore lower bits corresponding to inside the memory range
+  // form a mask where the bottom k-2 bits are 1, corresponding to a size of 2^k bytes for this memory region. 
+  assign NABase = (PMPAdr & ~NAMask); // base physical address of the pmp.
+  assign NABoundaryCross = (Size == 2'b11) & (AdrMode == NA4) & ({PhysicalAddress[`PA_BITS-1:3], 1'b1} == PMPAdr); // check if physical address + 4 bytes matches the NA4 pmp address, indicating boundary cross.
+  // *** this could possibly be solved without the additional PA_BITS equality checker by ORing the inside of the &(...) with 1'b(Size == 8bytes)
+  assign NAMatch = &((NABase ~^ PhysicalAddress[`PA_BITS-1:2]) | NAMask | {{(`PA_BITS-3){1'b0}}, NABoundaryCross}); 
 
   assign Match = (AdrMode == TOR) ? TORMatch : 
                  (AdrMode == NA4 | AdrMode == NAPOT) ? NAMatch :
