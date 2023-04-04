@@ -56,17 +56,18 @@ module pmpadrdec (
 
   assign AdrMode = PMPCfg[4:3];
 
-  // The two lsb of the physical address don't matter for this checking, 
+  // The two lsb of the physical address don't matter for this checking 
   // since PMP are allowed a max granularity of 4 bytes.
 
   // Top-of-range (TOR)
   assign PAltPMPAdr = ({1'b0, PhysicalAddress[`PA_BITS-3:2]} < {1'b0, PMPAdr}); // unsigned comparison
-  assign PAgePMPAdrOut = ~PAltPMPAdr; // This physical address is greater than or equal to this PMP if  
-  assign TORMatch = PAgePMPAdrIn & PAltPMPAdr; // trigger a match if any part of the access is higher than the previous address and lower than the current one.
- 
+  assign PAgePMPAdrOut = ~PAltPMPAdr | TORCrossPrevOut; // indicates if any byte of this access is greater than this PMPAdr
+  assign TORMatch = PAgePMPAdrIn & PAltPMPAdr; 
+
   // Naturally aligned regions
-  assign NAMask = (PMPAdr + {{(`PA_BITS-3){1'b0}}, (AdrMode == NAPOT)}) ^ PMPAdr;
+
   // form a mask where the bottom k-2 bits are 1, corresponding to a size of 2^k bytes for this memory region. 
+  assign NAMask = (PMPAdr + {{(`PA_BITS-3){1'b0}}, (AdrMode == NAPOT)}) ^ PMPAdr;
   assign NABase = (PMPAdr & ~NAMask); // base physical address of the pmp.
   assign NAMatch = &((NABase ~^ PhysicalAddress[`PA_BITS-1:2]) | NAMask | {{(`PA_BITS-3){1'b0}}, NABoundaryCross}); 
 
@@ -79,15 +80,15 @@ module pmpadrdec (
   assign W = PMPCfg[1];
   assign R = PMPCfg[0];
 
-  // region crossing accesses
-  assign TORCrossPrevOut = (Size == 2'b11) & (AdrMode == TOR) & ({PhysicalAddress[`PA_BITS-1:3], 1'b1} == PMPAdr); // check to see if the physical address + 4 bytes matches the PMP Address for 8 byte accesses. indicating a boundary cross.
-  assign TORBoundaryCross = (AdrMode == TOR) & (TORCrossPrevOut | TORCrossPrevIn);
-  assign NABoundaryCross = (Size == 2'b11) & (AdrMode == NA4) & (({PhysicalAddress[`PA_BITS-1:3], 1'b1} == PMPAdr) | (PhysicalAddress[`PA_BITS-1:2] == PMPAdr)); // Check if access crosses into or out of NA4 boundary
-  // *** this could possibly be solved without the additional PA_BITS equality checker by ORing the inside of the &(...) with 1'b(Size == 8bytes)
+  // region-crossing accesses
+
+  // check to see if the physical address + 4 bytes matches this PMP Address for 8 byte accesses. indicating a boundary cross.
+  assign TORCrossPrevOut = (AdrMode == TOR) & (Size == 2'b11) & ({PhysicalAddress[`PA_BITS-1:3], 1'b1} == PMPAdr); 
+  assign TORBoundaryCross = (AdrMode == TOR) & (TORCrossPrevOut | TORCrossPrevIn); 
+  // matches either crossing into this region through the address specified in previous PMP or crossing out of this region
+
+  assign NABoundaryCross = (AdrMode == NA4) & (Size == 2'b11) & (({PhysicalAddress[`PA_BITS-1:3], 1'b1} == PMPAdr) | (PhysicalAddress[`PA_BITS-1:2] == PMPAdr)); // Check if access crosses into or out of NA4 boundary
   assign AllBytesMatch = ~(NABoundaryCross | TORBoundaryCross);
 
-  // known bug: The size of the access is not yet checked.  For example, if an NA4 entry matches 0xC-0xF and the system
-  // attempts an 8-byte access to 0x8, the access should fail (see page 60 of privileged specification 20211203). This
-  // implementation will not detect the failure.
  endmodule
 
