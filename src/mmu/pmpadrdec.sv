@@ -49,28 +49,22 @@ module pmpadrdec (
   localparam                    NAPOT = 2'b11;
 
   logic                         TORMatch, NAMatch;
+  logic [`PA_BITS-3:0]          NAMask, NABase;
   logic                         PAltPMPAdr;
   logic                         TORBoundaryCross, NABoundaryCross;
-  logic [`PA_BITS-1:0]          CurrentAdrFull;
   logic [1:0]                   AdrMode;
 
   assign AdrMode = PMPCfg[4:3];
 
-  // The two lsb of the physical address don't matter for this checking.
-  // The following code includes them, but hardwires the PMP checker lsbs to 00
-  // and masks them later.  Logic synthesis should optimize away these bottom bits.
- 
+  // The two lsb of the physical address don't matter for this checking, 
+  // since PMP are allowed a max granularity of 4 bytes.
+
   // Top-of-range (TOR)
-  // Append two implicit trailing 0's to PMPAdr value
-  assign CurrentAdrFull  = {PMPAdr[`PA_BITS-3:0],  2'b00};
-  assign PAltPMPAdr = ({1'b0, PhysicalAddress} < {1'b0, CurrentAdrFull}); // unsigned comparison, including matching if top of access comes into this region
-  assign PAgePMPAdrOut = ~PAltPMPAdr | TORCrossPrevIn; // Match as address being greater than the pmp address if the access goes across the bottom of this region.
+  assign PAltPMPAdr = ({1'b0, PhysicalAddress[`PA_BITS-3:2]} < {1'b0, PMPAdr}); // unsigned comparison
+  assign PAgePMPAdrOut = ~PAltPMPAdr; // This physical address is greater than or equal to this PMP if  
   assign TORMatch = PAgePMPAdrIn & PAltPMPAdr; // trigger a match if any part of the access is higher than the previous address and lower than the current one.
  
   // Naturally aligned regions
-  logic [`PA_BITS-3:0] NAMask, NABase;
-  // the bottom two bits of both the phyical address and the pmpaddr are ignored since they're always zeroed out.
-
   assign NAMask = (PMPAdr + {{(`PA_BITS-3){1'b0}}, (AdrMode == NAPOT)}) ^ PMPAdr;
   // form a mask where the bottom k-2 bits are 1, corresponding to a size of 2^k bytes for this memory region. 
   assign NABase = (PMPAdr & ~NAMask); // base physical address of the pmp.
