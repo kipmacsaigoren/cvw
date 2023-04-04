@@ -65,13 +65,13 @@ test_cases:
 .8byte 0x2, 0x20040084, write_pmpaddr_2  # | 2     | 0x20040084  | 0C        | 0 | TOR   | 1 | 0 | 0 | 80100204-80100210 X 		    |
 .8byte 0x3, 0x20040080, write_pmpaddr_3  # | 3     | 0x20040080  | 16        | 0 | NA4   | 1 | 1 | 0 | 80100200-80100203 XW 		|
 .8byte 0x4, 0x200400C1, write_pmpaddr_4  # | 4     | 0x200400C1  | 90        | 1 | NA4   | 0 | 0 | 0 | 80100304-80100307 locked out |
-.8byte 0x5, 0x2004013F, write_pmpaddr_5  # | 5     | 0x2004013F  | 18        | 0 | NAPOT | 0 | 0 | 0 | 80100400-801004FF no access 	|
+.8byte 0x5, 0x2004011F, write_pmpaddr_5  # | 5     | 0x2004013F  | 18        | 0 | NAPOT | 0 | 0 | 0 | 80100400-801004FF no access 	|
 .8byte 0x6, 0x20040000, write_pmpaddr_6  # | 6     | 0x20040000  | 11        | 0 | NA4   | 0 | 0 | 1 | 80100000-80100003 R          |
 .8byte 0x7, 0x20040002, write_pmpaddr_7  # | 7     | 0x20040002  | 00        | 0 | OFF   | 0 | 0 | 0 |                              |
 .8byte 0x8, 0x20040003, write_pmpaddr_8  # | 8     | 0x20040003  | 09        | 0 | TOR   | 0 | 0 | 1 | 80100008-8010000C R          |
 # intermediate PMPs are all zeroed out in this test, so they don't need writes.
 .8byte 0xE, 0x2FFFFFFF, write_pmpaddr_14 # | 14    | 0x2FFFFFFF  | 1F        | 0 | NAPOT | 1 | 1 | 1 | Main mem 80000000-FFFFFFFF RWX|
-.8byte 0xF, 0x2004017F, write_pmpaddr_15 # | 15    | 0x2004017F  | 10        | 0 | NA4   | 0 | 0 | 0 | 80100500-80100503 no access  |
+.8byte 0xF, 0x20040140, write_pmpaddr_15 # | 15    | 0x2004017F  | 10        | 0 | NA4   | 0 | 0 | 0 | 80100500-80100503 no access  |
 
 # write pmpcfg regs with the information in the table above. this should also write the value of these registers to the output.
 .8byte 0x0, 0x00111890160C001B, write_pmpcfg_0 # write pmpcfg0, output 0x00111890160C001B
