@@ -60,7 +60,7 @@ module pmpadrdec (
   // since PMP are allowed a max granularity of 4 bytes.
 
   // Top-of-range (TOR)
-  assign PAltPMPAdr = ({1'b0, PhysicalAddress[`PA_BITS-3:2]} < {1'b0, PMPAdr}); // unsigned comparison
+  assign PAltPMPAdr = ({1'b0, PhysicalAddress[`PA_BITS-1:2]} < {1'b0, PMPAdr}); // unsigned comparison
   assign PAgePMPAdrOut = ~PAltPMPAdr | TORCrossPrevOut; // indicates if any byte of this access is greater than this PMPAdr
   assign TORMatch = PAgePMPAdrIn & PAltPMPAdr; 
 
