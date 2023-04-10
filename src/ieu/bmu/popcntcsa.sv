@@ -24,7 +24,7 @@
 // and limitations under the License.
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
-module popcntcsa #(parameter WIDTH = 32) (
+module popcntcsa #(parameter WIDTH = 16) (
   input logic  [WIDTH-1:0]            a,    // number to count total ones
   output logic [$clog2(WIDTH):0]  s  // the total number of ones
 );
