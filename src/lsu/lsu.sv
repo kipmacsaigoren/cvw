@@ -62,7 +62,7 @@ module lsu (
   output logic                LoadPageFaultM, StoreAmoPageFaultM,   // Page fault exceptions
   output logic                LoadMisalignedFaultM,                 // Load address misaligned fault
   output logic                LoadAccessFaultM,                     // Load access fault (PMA)
-  output logic                HPTWInstrAccessFaultM,                // HPTW generated access fault during instruction fetch
+  output logic                HPTWInstrAccessFaultF,                // HPTW generated access fault during instruction fetch
   // cpu hazard unit (trap)
   output logic                StoreAmoMisalignedFaultM,             // Store or AMO address misaligned fault
   output logic                StoreAmoAccessFaultM,                 // Store or AMO access fault
@@ -149,7 +149,7 @@ module lsu (
   // MMU include PMP and is needed if any privileged supported
   /////////////////////////////////////////////////////////////////////////////////////////////
 
-  if(`VIRTMEM_SUPPORTED) begin : VIRTMEM_SUPPORTED
+  if(`VIRTMEM_SUPPORTED) begin : hptw
     hptw hptw(.clk, .reset, .MemRWM, .AtomicM, .ITLBMissF, .ITLBWriteF,
       .DTLBMissM, .DTLBWriteM, .InstrUpdateDAF, .DataUpdateDAM,
       .FlushW, .DCacheStallM, .SATP_REGW, .PCSpillF,
@@ -159,7 +159,7 @@ module lsu (
       .IEUAdrExtM, .PTE, .IHWriteDataM, .PageType, .PreLSURWM, .LSUAtomicM,
       .IHAdrM, .HPTWStall, .SelHPTW,
       .IgnoreRequestTLB, .LSULoadAccessFaultM, .LSUStoreAmoAccessFaultM, 
-      .LoadAccessFaultM, .StoreAmoAccessFaultM, .HPTWInstrAccessFaultM);
+      .LoadAccessFaultM, .StoreAmoAccessFaultM, .HPTWInstrAccessFaultF);
   end else begin // No HPTW, so signals are not multiplexed
     assign PreLSURWM = MemRWM; 
     assign IHAdrM = IEUAdrExtM;
@@ -170,7 +170,7 @@ module lsu (
     assign LoadAccessFaultM = LSULoadAccessFaultM;
     assign StoreAmoAccessFaultM = LSUStoreAmoAccessFaultM;   
     assign {HPTWStall, SelHPTW, PTE, PageType, DTLBWriteM, ITLBWriteF, IgnoreRequestTLB} = '0;
-    assign HPTWInstrAccessFaultM = '0;
+    assign HPTWInstrAccessFaultF = '0;
    end
 
   // CommittedM indicates the cache, bus, or HPTW are busy with a multiple cycle operation.

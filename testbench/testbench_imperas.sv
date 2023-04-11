@@ -198,10 +198,12 @@ module testbench;
       
     end
 
-    always @(dut.core.MTimerInt) void'(rvvi.net_push("MTimerInterrupt",    dut.core.MTimerInt));
-    always @(dut.core.MExtInt)   void'(rvvi.net_push("MExternalInterrupt", dut.core.MExtInt));
-    always @(dut.core.SExtInt)   void'(rvvi.net_push("SExternalInterrupt", dut.core.SExtInt));
-    always @(dut.core.MSwInt)    void'(rvvi.net_push("MSWInterrupt",       dut.core.MSwInt));
+    always @(dut.core.MTimerInt)   void'(rvvi.net_push("MTimerInterrupt",    dut.core.MTimerInt));
+    always @(dut.core.MExtInt)     void'(rvvi.net_push("MExternalInterrupt", dut.core.MExtInt));
+    always @(dut.core.SExtInt)     void'(rvvi.net_push("SExternalInterrupt", dut.core.SExtInt));
+    always @(dut.core.MSwInt)      void'(rvvi.net_push("MSWInterrupt",       dut.core.MSwInt));
+    always @(dut.core.priv.priv.csr.csrs.csrs.STimerInt) void'(rvvi.net_push("STimerInterrupt", dut.core.priv.priv.csr.csrs.csrs.STimerInt));
+
 
     final begin
       void'(rvviRefShutdown());
@@ -401,7 +403,7 @@ module DCacheFlushFSM
                            // these dirty bit selections would be needed if dirty is moved inside the tag array.
           //.dirty(testbench.dut.core.lsu.bus.dcache.dcache.CacheWays[way].dirty.DirtyMem.RAM[index]),
           //.dirty(testbench.dut.core.lsu.bus.dcache.dcache.CacheWays[way].CacheTagMem.RAM[index][`PA_BITS+tagstart]),
-          .data(testbench.dut.core.lsu.bus.dcache.dcache.CacheWays[way].word[cacheWord].CacheDataMem.RAM[index]),
+          .data(testbench.dut.core.lsu.bus.dcache.dcache.CacheWays[way].word[cacheWord].wordram.CacheDataMem.RAM[index]),
           .index(index),
           .cacheWord(cacheWord),
           .CacheData(CacheData[way][index][cacheWord]),

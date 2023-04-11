@@ -28,6 +28,11 @@
 
 main:
 
+    # Division test (having trouble with buildroot)
+    li x11, 0x384000
+    li x12, 0x1c2000
+    divuw x9, x11, x12
+
     # Test clz with all bits being 0
     li t0, 0
     clz t1, t0
@@ -37,6 +42,7 @@ main:
     clz t1, t0
 
     # Test forwarding from store conditional
+    mv a0, sp
     lr.w t0, 0(a0)
     sc.w t0, a1, 0(a0)
     addi t0, t0, 1
@@ -60,6 +66,7 @@ main:
     .word 0x60F0101B  // Illegal BMU similar to count word
     .word 0x6080101B  // Illegal BMU similar to count word
     .word 0x6030101B  // Illegal BMU similar to count word
+
 
     j done
 
