@@ -67,7 +67,7 @@ module pmpadrdec (
   // Naturally aligned regions
 
   // form a mask where the bottom k-2 bits are 1, corresponding to a size of 2^k bytes for this memory region. 
-  assign NAMask = (PMPAdr + {{(`PA_BITS-3){1'b0}}, (AdrMode == NAPOT)}) ^ PMPAdr;
+  assign NAMask = (PMPAdr + {{(`PA_BITS-3){1'b0}}, (AdrMode == NAPOT)}) ^ PMPAdr | {{(`PA_BITS-3){1'b0}}, (Size == 2'b11)}; // Mask out LSB when using 64 bit accesses to detect PMP matches across boundaries
   assign NABase = (PMPAdr & ~NAMask); // base physical address of the pmp.
   assign NAMatch = &((NABase ~^ PhysicalAddress[`PA_BITS-1:2]) | NAMask | {{(`PA_BITS-3){1'b0}}, NABoundaryCross}); 
 
@@ -86,8 +86,7 @@ module pmpadrdec (
   assign TORCrossPrevOut = (AdrMode == TOR) & (Size == 2'b11) & ({PhysicalAddress[`PA_BITS-1:3], 1'b1} == PMPAdr); 
   assign TORBoundaryCross = (AdrMode == TOR) & (TORCrossPrevOut | TORCrossPrevIn); 
   // matches either crossing into this region through the address specified in previous PMP or crossing out of this region
-
-  assign NABoundaryCross = (AdrMode == NA4) & (Size == 2'b11) & (({PhysicalAddress[`PA_BITS-1:3], 1'b1} == PMPAdr) | (PhysicalAddress[`PA_BITS-1:2] == PMPAdr)); // Check if access crosses into or out of NA4 boundary
+  assign NABoundaryCross = NAMatch & (AdrMode == NA4) & (Size == 2'b11); // Check if access crosses into or out of NA4 boundary
   assign AllBytesMatch = ~(NABoundaryCross | TORBoundaryCross);
 
  endmodule
