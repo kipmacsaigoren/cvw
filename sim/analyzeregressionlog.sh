@@ -4,6 +4,9 @@
 # $2: N: we will run this every n commits
 # $3: REP: we will run the command for REP number of times
 
+log="regression_git.log"
+git log --follow regression-wally >> $log
+
 if [ ! $# -eq 3 ]
 then
     echo Invalid number of params in $0
@@ -18,9 +21,6 @@ REP=$3
 # if log directory doesn't exist, make the log directory
 DIR="regression_time_log"
 [ ! -d $DIR ] && mkdir $DIR
-
-# checkout the commit, run thing, checkout main.
-log="regression_git.log"
 
 # holds the line number of distinct commit dates
 arr=$(grep -n "Date" $log | sed "s@:.*@@")
