@@ -4,8 +4,6 @@
 # $2: N: we will run this every n commits
 # $3: REP: we will run the command for REP number of times
 
-log="regression_git.log"
-git log --follow regression-wally >> $log
 
 if [ ! $# -eq 3 ]
 then
@@ -17,6 +15,13 @@ fi
 CMD=$1
 N=$2
 REP=$3
+
+# generate git log file
+log="regression_git.log"
+git log --follow regression-wally > $log
+
+# declare current branch
+curr_branch=$(git rev-parse --abbrev-ref HEAD)
 
 # if log directory doesn't exist, make the log directory
 DIR="regression_time_log"
@@ -44,7 +49,7 @@ do
         commitid=$(sed -n $((i-2))p $log | awk '{print $2}')
 
         # run helper script
-        ./checkout_and_time.sh "$commitid" "$commit_date" "$timelog" "$outlog" "$CMD" "$REP"
+        ./checkout_and_time.sh "$commitid" "$commit_date" "$timelog" "$outlog" "$CMD" "$REP" "$curr_branch"
         
 
     fi
