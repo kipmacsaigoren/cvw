@@ -42,6 +42,8 @@ arr=$(grep -n "Date" $log | sed "s@:.*@@")
 index=0
 for i in $arr
 do
+    # run the checkout and time code for commit
+    if !((index%$N)) 
     # declare full commit date string
     commit_date=$(sed -n ${i}p $log)
 
@@ -53,9 +55,6 @@ do
 
     >$outlog
     >$timelog
-    
-    # run the checkout and time code for commit
-    if !((index%$N)) 
     then
         # extract commit id
         commitid=$(sed -n $((i-2))p $log | awk '{print $2}')
