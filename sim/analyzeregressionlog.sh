@@ -12,7 +12,7 @@ then
     N=$1
     REP=$2
     REGRESSION=1
-elif [ 4 $# -eq 4 ]
+elif [ $# -eq 4 ]
 then
     ARCH=$1
     TEST=$2
