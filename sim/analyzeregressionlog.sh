@@ -52,7 +52,8 @@ do
     timelog=$DIR/$(echo $commit_date | cut -d " " -f 3-6 | sed "s@\s@_@g")_OUT.log
     
     # run the checkout and time code for commit
-    if !((index%$N)); then
+    if !((index%$N)) 
+    then
         # extract commit id
         commitid=$(sed -n $((i-2))p $log | awk '{print $2}')
 
@@ -63,9 +64,7 @@ do
         else
         # we are testing a sim
             ./checkout_and_time.sh "$commitid" "$commit_date" "$timelog" "$outlog" "$REP" "$curr_branch" "$ARCH" "$TEST"
-
-        # run helper script
-        
+        fi
 
     fi
     ((index++))
