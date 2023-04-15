@@ -50,6 +50,9 @@ then
     if [ -d $WALLY/pipelined ]
     then 
         command="./$WALLY/pipelined/regression-wally"
+    elif [ -d $WALLY/regression ]
+    then 
+        command="./$WALLY/regression/regression-wally"
     else
         command="./regression-wally"
     # we are on most recent path
