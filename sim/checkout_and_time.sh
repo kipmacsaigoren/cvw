@@ -49,12 +49,12 @@ then
     # check if cvw/pipelined directory exists
     if [ -d $WALLY/pipelined ]
     then 
-        command="./$WALLY/pipelined/regression-wally"
+        command=".$WALLY/pipelined/regression-wally"
     elif [ -d $WALLY/regression ]
     then 
-        command="./$WALLY/regression/regression-wally"
+        command=".$WALLY/regression/regression-wally"
     else
-        command="./regression-wally"
+        command=".$WALLY/sim/regression-wally"
     # we are on most recent path
 
     fi
