@@ -44,7 +44,7 @@ fi
 git checkout $commit
 
 # check if running regression or vsim command
-if [ regression -eq 1 ]
+if [ $regression -eq 1 ]
 then
     # check if cvw/pipelined directory exists
     if [ -d $WALLY/pipelined ]
