@@ -50,6 +50,9 @@ do
 
     # declare time log file name
     timelog=$DIR/$(echo $commit_date | cut -d " " -f 3-6 | sed "s@\s@_@g")_OUT.log
+
+    >$outlog
+    >$timelog
     
     # run the checkout and time code for commit
     if !((index%$N)) 
