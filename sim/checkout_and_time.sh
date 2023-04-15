@@ -61,6 +61,10 @@ else
     then 
         # old pipelined path
         command="cd $WALLY/pipelined/regression; vsim -c -do \"wally-pipelined-batch.do $arch $test\"; cd $WALLY/sim"
+    elif [ -d $WALLY/regression ]
+    then
+        # another old regression path
+        command="cd $WALLY/regression; vsim -c -do \"wally-pipelined-batch.do $arch $test\"; cd $WALLY/sim"
     elif [ -f $WALLY/wally-pipelined-batch.do ]
     then
         # current path but batch file is not most recent
