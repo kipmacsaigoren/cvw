@@ -50,7 +50,7 @@ then
     if [ -d $WALLY/pipelined ]
     then 
         command=".$WALLY/pipelined/regression-wally"
-    elif [ -d $WALLY/regression ]
+    elif [ -f $WALLY/regression/regression-wally ]
     then 
         command=".$WALLY/regression/regression-wally"
     else
