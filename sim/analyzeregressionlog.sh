@@ -44,18 +44,18 @@ for i in $arr
 do
     # run the checkout and time code for commit
     if !((index%$N)) 
-    # declare full commit date string
-    commit_date=$(sed -n ${i}p $log)
-
-    # declare output log file name
-    outlog=$DIR/$(echo $commit_date | cut -d " " -f 3-6 | sed "s@\s@_@g")_TIMES.log
-
-    # declare time log file name
-    timelog=$DIR/$(echo $commit_date | cut -d " " -f 3-6 | sed "s@\s@_@g")_OUT.log
-
-    >$outlog
-    >$timelog
     then
+        # declare full commit date string
+        commit_date=$(sed -n ${i}p $log)
+
+        # declare output log file name
+        outlog=$DIR/$(echo $commit_date | cut -d " " -f 3-6 | sed "s@\s@_@g")_TIMES.log
+
+        # declare time log file name
+        timelog=$DIR/$(echo $commit_date | cut -d " " -f 3-6 | sed "s@\s@_@g")_OUT.log
+
+        >$outlog
+        >$timelog
         # extract commit id
         commitid=$(sed -n $((i-2))p $log | awk '{print $2}')
 
