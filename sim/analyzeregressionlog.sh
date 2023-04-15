@@ -1,20 +1,28 @@
 #!/bin/bash
 
-# $1: CMD: command to run and time
-# $2: N: we will run this every n commits
-# $3: REP: we will run the command for REP number of times
+# $1: ARCH: rv architecture to simulate
+# $2: Test to run
+# $3: N: we will run this every n commits
+# $4: REP: we will run the command for REP number of times
 
 
-if [ ! $# -eq 3 ]
+# if arch and test are not specified, default to regression
+if [ $# -eq 2 ]
 then
+    N=$1
+    REP=$2
+    REGRESSION=1
+elif [ 4 $# -eq 4 ]
+then
+    ARCH=$1
+    TEST=$2
+    N=$3
+    REP=$4
+    REGRESSION=0
+else 
     echo Invalid number of params in $0
-    exit 1
+    exit
 fi
-
-# name function parameters
-CMD=$1
-N=$2
-REP=$3
 
 # generate git log file
 log="regression_git.log"
@@ -48,8 +56,15 @@ do
         # extract commit id
         commitid=$(sed -n $((i-2))p $log | awk '{print $2}')
 
+        if [ $REGRESSION -eq 1 ]
+        then
+        # we are testing regression
+            ./checkout_and_time.sh "$commitid" "$commit_date" "$timelog" "$outlog" "$REP" "$curr_branch"
+        else
+        # we are testing a sim
+            ./checkout_and_time.sh "$commitid" "$commit_date" "$timelog" "$outlog" "$REP" "$curr_branch" "$ARCH" "$TEST"
+
         # run helper script
-        ./checkout_and_time.sh "$commitid" "$commit_date" "$timelog" "$outlog" "$CMD" "$REP" "$curr_branch"
         
 
     fi

@@ -6,30 +6,76 @@
 # $2: date string
 # $3: log file to write time statistics to
 # $4: log file to write regression stdout to 
-# $5: name of command to time
-# $6: number of times to run the command
-# $7: name of the top-level git branch
-
-if [ ! $# -eq 7 ]
+# $5: number of times to run the command
+# $6: name of the top-level git branch
+# OPTIONAL
+# $7: rv architecture (rv32i, rv64gc, etc)
+# $8: name of the test to run
+if [ $# -eq 6 ]
 then
+    # we are testing a regression
+    commit=$1
+    date=$2
+    timelog=$3
+    outlog=$4
+    n=$5
+    top_branch=$6
+    regression=1
+elif [ $# -eq 8 ]
+then
+    # we are testing a vsim
+    commit=$1
+    date=$2
+    timelog=$3
+    outlog=$4
+    n=$5
+    top_branch=$6
+    arch=$7
+    test=$8
+    regression=0
+else
+    # invalid number of args
     echo Invalid number of params in $0
     exit 1
+
 fi
 
-commit=$1
-date=$2
-timelog=$3
-outlog=$4
-command=$5
-n=$6
-top_branch=$7
 
+git checkout $commit
+
+# check if running regression or vsim command
+if [ regression -eq 1 ]
+then
+    # check if cvw/pipelined directory exists
+    if [ -d $WALLY/pipelined ]
+    then 
+        command=
+    else
+        command=
+    # we are on most recent path
+
+    fi
+else 
+    # check if do file still has pipelined in it
+    if [ -d $WALLY/pipelined ]
+    then 
+        # old pipelined path
+        command=
+    elif [ -f $WALLY/wally-pipelined-batch.do ]
+    then
+        # current path but batch file is not most recent
+        command=
+    else
+        # current working path
+        command=
+    fi
+
+fi
 header="$date\ncommit id:$commit\ncommand: $command"
 echo -e $header >> $timelog
 echo -e $header >> $outlog
 >>$timelog
 >>$outlog
-git checkout $commit
 avg=0
 for ((i=1;i<=$n;i++)) do
     echo "*****************************************************************" | tee -a $outlog $timelog
