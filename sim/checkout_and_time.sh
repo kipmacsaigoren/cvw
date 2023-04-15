@@ -49,9 +49,9 @@ then
     # check if cvw/pipelined directory exists
     if [ -d $WALLY/pipelined ]
     then 
-        command=
+        command="./$WALLY/pipelined/regression-wally"
     else
-        command=
+        command="./regression-wally"
     # we are on most recent path
 
     fi
@@ -60,14 +60,14 @@ else
     if [ -d $WALLY/pipelined ]
     then 
         # old pipelined path
-        command=
+        command="cd $WALLY/pipelined/regression; vsim -c -do \"wally-pipelined-batch.do $arch $test\"; cd $WALLY/sim"
     elif [ -f $WALLY/wally-pipelined-batch.do ]
     then
         # current path but batch file is not most recent
-        command=
+        command="vsim -c -do \"wally-pipelined-batch.do $arch $test\""
     else
         # current working path
-        command=
+        command="vsim -c -do \"wally-batch.do $arch $test\""
     fi
 
 fi

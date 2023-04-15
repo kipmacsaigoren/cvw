@@ -32,7 +32,7 @@ git log --follow regression-wally > $log
 curr_branch=$(git rev-parse --abbrev-ref HEAD)
 
 # if log directory doesn't exist, make the log directory
-DIR="regression_time_log"
+DIR="$WALLY/sim/regression_time_log"
 [ ! -d $DIR ] && mkdir $DIR
 
 # holds the line number of distinct commit dates
