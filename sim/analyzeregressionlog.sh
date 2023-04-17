@@ -24,9 +24,7 @@ else
     exit
 fi
 
-# generate git log file
 log="regression_git.log"
-git log --follow regression-wally > $log
 
 # declare current branch
 curr_branch=$(git rev-parse --abbrev-ref HEAD)
