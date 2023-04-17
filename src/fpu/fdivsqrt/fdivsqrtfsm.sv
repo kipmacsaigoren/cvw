@@ -29,24 +29,24 @@
 `include "wally-config.vh"
 
 module fdivsqrtfsm(
-  input  logic clk, 
-  input  logic reset, 
+  input  logic                clk, 
+  input  logic                reset, 
   input  logic [`FMTBITS-1:0] FmtE,
-  input  logic XInfE, YInfE, 
-  input  logic XZeroE, YZeroE, 
-  input  logic XNaNE, YNaNE, 
-  input  logic FDivStartE, IDivStartE,
-  input  logic XsE,
-  input  logic SqrtE,
-  input  logic StallM,
-  input  logic FlushE,
-  input  logic WZeroE,
-  input  logic IntDivE,
-  input  logic [`DIVBLEN:0] nE,
-  input  logic ISpecialCaseE,
-  output logic IFDivStartE,
-  output logic FDivBusyE, FDivDoneE,
-  output logic SpecialCaseM
+  input  logic                XInfE, YInfE, 
+  input  logic                XZeroE, YZeroE, 
+  input  logic                XNaNE, YNaNE, 
+  input  logic                FDivStartE, IDivStartE,
+  input  logic                XsE,
+  input  logic                SqrtE,
+  input  logic                StallM,
+  input  logic                FlushE,
+  input  logic                WZeroE,
+  input  logic                IntDivE,
+  input  logic [`DIVBLEN:0]   nE,
+  input  logic                ISpecialCaseE,
+  output logic                IFDivStartE,
+  output logic                FDivBusyE, FDivDoneE,
+  output logic                SpecialCaseM
 );
   
   typedef enum logic [1:0] {IDLE, BUSY, DONE} statetype;
@@ -110,7 +110,7 @@ module fdivsqrtfsm(
   always_ff @(posedge clk) begin
       if (reset | FlushE) begin
           state <= #1 IDLE; 
-      end else if (IFDivStartE) begin 
+      end else if ((state == IDLE) & IFDivStartE) begin 
           step <= cycles; 
           if (SpecialCaseE) state <= #1 DONE;
           else              state <= #1 BUSY;
