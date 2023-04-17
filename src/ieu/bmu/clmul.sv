@@ -34,7 +34,45 @@ module clmul #(parameter WIDTH=32) (
   output logic [WIDTH-1:0] ClmulResult);     // ZBS result
 
   logic [(WIDTH*WIDTH)-1:0] S;               // intermediary signals for carry-less multiply
+  /*
+  genvar i;
+  assign S[WIDTH-1:0] = X & {WIDTH{Y[0]}};
+    for (i=1;i<WIDTH;i++) begin:clmul
+      assign S[(WIDTH)*(i+1)-1:(WIDTH)*(i)] = {{S[(WIDTH)*(i)-1:(WIDTH)*(i-1)+i] ^ {(WIDTH-i){Y[i]}} & X[WIDTH-1-i:0]}, {S[(WIDTH)*(i-1)+i-1:(WIDTH)*(i-1)]}};
+    end
+  assign ClmulResult = S[(WIDTH*WIDTH)-1:(WIDTH*(WIDTH-1))];
+  */
   
+  //super vectorized
+  genvar i;
+  integer l;
+  integer r;
+  integer pl;
+  integer pr;
+  integer w;
+  assign r=WIDTH;
+  assign w=WIDTH-2;
+  assign pl=WIDTH-1;
+  assign pr=0;
+  
+  assign S[WIDTH-1:0] = X & {WIDTH{Y[0]}};
+  for (i=1;i<(WIDTH*(WIDTH+1)/2);i++) begin:clmul
+    assign S[r+:w] = S[pr+:w]^{{(WIDTH-i){Y[i]}} & X[WIDTH-1-i:0]};
+    pr=r;
+    r=r+(WIDTH-1)-i;
+    w=w-1;
+    //assign S[(WIDTH)*(i)-i:(WIDTH)*(i-1)-(i-2)] = {{S[(WIDTH)*(i-1)-1:(WIDTH)*(i-2)+(i-1)] ^ {(WIDTH-i+1){Y[i-1]}} & X[WIDTH-1-i+1:0]}};
+    
+  end
+  genvar j;
+  integer k;
+  assign ClmulResult[0] = S[0];
+  for (j=0;j<WIDTH;j++) begin:res
+    assign ClmulResult[j+1]=S[(WIDTH)*(j+1)-j];
+  end
+  
+  
+  /*
   integer i,j;
 
   always_comb begin
@@ -46,6 +84,7 @@ module clmul #(parameter WIDTH=32) (
       ClmulResult[i] = S[WIDTH*i+j-1];
     end
   end
+  */
 endmodule
 
 
