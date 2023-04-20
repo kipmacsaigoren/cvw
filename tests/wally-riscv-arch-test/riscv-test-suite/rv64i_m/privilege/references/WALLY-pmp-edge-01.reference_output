@@ -1,0 +1,54 @@
+20040081 # Writeback value from writing PMPAdr0
+00000000
+20040082 # Writeback value from writing PMPAdr1
+00000000
+20040083 # Writeback value from writing PMPAdr2
+00000000
+20040101 # Writeback value from writing PMPAdr3
+00000000
+20040102 # Writeback value from writing PMPAdr4
+00000000
+20040102 # Writeback value from writing PMPAdr5
+00000000
+20040103 # Writeback value from writing PMPAdr6
+00000000
+20040103 # Writeback value from writing PMPAdr7
+00000000
+20040104 # Writeback value from writing PMPAdr8
+00000000
+2FFFFFFF # Writeback value from writing PMPAdr14
+00000000
+20040140 # Writeback value from writing PMPAdr15
+00000000
+00111011 # Writeback value from writing pmpcfg0
+00080009
+00000008 # Writeback value from writing pmpcfg2
+101F0000
+00000007 # Write fault due to boundary crossing PMP access
+00000000 
+00000007 # Write fault due to boundary crossing PMP access
+00000000 
+00000005 # Read fault due to boundary crossing PMP access
+00000000
+00000bad 
+00000000
+00000005 # Read fault due to boundary crossing PMP access
+00000000
+00000bad 
+00000000
+00000007 # Write fault due to boundary crossing PMP access
+00000000
+00000007 # Write fault due to boundary crossing PMP access
+00000000
+00000005 # Read fault due to boundary crossing PMP access
+00000000
+00000bad 
+00000000
+00000005 # Read fault due to boundary crossing PMP access
+00000000
+00000bad 
+00000000
+00600daa # Successful read across PMP boundary with higher priority
+00000000
+00000009 # Ecall from terminating tests in S mode
+00000000
