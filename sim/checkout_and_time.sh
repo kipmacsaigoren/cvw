@@ -60,7 +60,7 @@ then
     fi
 else 
     # check if do file still has pipelined in it
-    if [ -d $WALLY/pipelined ]
+    if [ -f $WALLY/pipelined/wally-pipelined-batch.do ]
     then 
         # old pipelined path
         command="cd $WALLY/pipelined/regression; vsim -c -do \"do wally-pipelined-batch.do $arch $test\"; cd $WALLY/sim"
