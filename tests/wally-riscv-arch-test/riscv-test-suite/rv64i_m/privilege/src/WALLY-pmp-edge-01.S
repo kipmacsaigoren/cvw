@@ -94,7 +94,7 @@ test_cases:
 .8byte 0x80100208, 0x0, read64_test     # Protected   | Allowed   | NA    | Both      | AccessFault
 .8byte 0x80100400, 0x0, write64_test    # Allowed     | Protected | TOR   | Bottom    | AccessFault
 .8byte 0x80100408, 0x0, write64_test    # Protected   | Protected | TOR   | Both      | AccessFault
-.8byte 0x80100404, 0x0, read64_test     # Allowed     | Allowed   | TOR   | Bottom    | AccessFault
+.8byte 0x80100400, 0x0, read64_test     # Allowed     | Allowed   | TOR   | Bottom    | AccessFault
 .8byte 0x80100408, 0x0, read64_test     # Protected   | Allowed   | TOR   | Both      | AccessFault
 
 

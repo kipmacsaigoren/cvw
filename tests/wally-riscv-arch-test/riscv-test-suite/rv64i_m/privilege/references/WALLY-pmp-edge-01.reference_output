@@ -24,6 +24,8 @@
 00080009
 00000008 # Writeback value from writing pmpcfg2
 101F0000
+0000000b # Ecall from going from M mode to S mode
+00000000
 00000007 # Write fault due to boundary crossing PMP access
 00000000 
 00000007 # Write fault due to boundary crossing PMP access
