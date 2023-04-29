@@ -29,7 +29,7 @@
 
 `include "wally-config.vh"
 
-module alu #(parameter WIDTH=32) (
+module alu #(parameter WIDTH=`XLEN) (
   input  logic [WIDTH-1:0] A, B,        // Operands
   input  logic             W64,         // W64-type instruction
   input  logic             SubArith,    // Subtraction or arithmetic shift
