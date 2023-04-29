@@ -29,7 +29,7 @@
 
 `include "wally-config.vh"
 
-module alu #(parameter WIDTH=32) (
+module alu #(parameter WIDTH=`XLEN) (
   input  logic [WIDTH-1:0] A, B,        // Operands
   input  logic             W64,         // W64-type instruction
   input  logic             SubArith,    // Subtraction or arithmetic shift
@@ -48,12 +48,16 @@ module alu #(parameter WIDTH=32) (
   logic [WIDTH-1:0] CondShiftA;                                                   // Result of A shifted select mux
   logic [WIDTH-1:0] CondExtA;                                                     // Result of Zero Extend A select mux
   logic             Carry, Neg;                                                   // Flags: carry out, negative
+  logic Carry1; //opt
+  logic [WIDTH-1:0] Sum1, CondInvB; //opt
   logic             LT, LTU;                                                      // Less than, Less than unsigned
   logic             Asign, Bsign;                                                 // Sign bits of A, B
 
   // Addition
   assign CondMaskInvB = SubArith ? ~CondMaskB : CondMaskB;
+  assign CondInvB = SubArith ? ~B : B; //opt
   assign {Carry, Sum} = CondShiftA + CondMaskInvB + {{(WIDTH-1){1'b0}}, SubArith};
+  assign {Carry1, Sum1} = A + CondInvB + {{(WIDTH-1){1'b0}}, SubArith}; // opt
   
   // Shifts (configurable for rotation)
   shifter sh(.A, .Amt(B[`LOG_XLEN-1:0]), .Right(Funct3[2]), .W64, .SubArith, .Y(Shift), .Rotate(BALUControl[2]));
@@ -62,11 +66,11 @@ module alu #(parameter WIDTH=32) (
   // Overflow occurs when the numbers being subtracted have the opposite sign 
   // and the result has the opposite sign of A.
   // LT is simplified from Overflow = Asign & Bsign & Asign & Neg; LT = Neg ^ Overflow
-  assign Neg  = Sum[WIDTH-1];
+  assign Neg  = Sum1[WIDTH-1];
   assign Asign = A[WIDTH-1];
   assign Bsign = B[WIDTH-1];
   assign LT = Asign & ~Bsign | Asign & Neg | ~Bsign & Neg; 
-  assign LTU = ~Carry;
+  assign LTU = ~Carry1;
  
   // Select appropriate ALU Result
   always_comb begin

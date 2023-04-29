@@ -67,7 +67,15 @@ module bitmanipalu #(parameter WIDTH=32) (
       mux2 #(64) zextmux(A, {{32{1'b0}}, A[31:0]}, W64, CondZextA); 
     end else assign CondZextA = A;
     assign PreShiftAmt = Funct3[2:1] & {2{PreShift}};
-    assign CondShiftA = CondZextA << (PreShiftAmt);
+    //assign CondShiftA = CondZextA << (PreShiftAmt);
+    always_comb
+      case (PreShiftAmt)
+        2'b00: CondShiftA = CondZextA;
+        2'b01: CondShiftA = {CondZextA[WIDTH-2:0],{1'b0}};
+        2'b10: CondShiftA = {CondZextA[WIDTH-3:0],{2'b00}};
+        2'b11: CondShiftA = {CondZextA[WIDTH-4:0],{3'b000}};
+      endcase
+
   end else begin
     assign PreShiftAmt = 2'b0;
     assign CondShiftA = A;
