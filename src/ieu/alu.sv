@@ -61,7 +61,11 @@ module alu #(parameter WIDTH=`XLEN) (
   
   // Shifts (configurable for rotation)
   shifter sh(.A, .Amt(B[`LOG_XLEN-1:0]), .Right(Funct3[2]), .W64, .SubArith, .Y(Shift), .Rotate(BALUControl[2]));
-
+  logic [WIDTH-1:0]af,bf,afs,bfs;
+  assign af = {A[WIDTH-1] ^ 1'b0, A[WIDTH-2:0]};
+  assign bf = {B[WIDTH-1] ^ 1'b0, B[WIDTH-2:0]};
+  assign afs = {A[WIDTH-1] ^ 1'b1, A[WIDTH-2:0]};
+  assign bfs = {B[WIDTH-1] ^ 1'b1, B[WIDTH-2:0]};
   // Condition code flags are based on subtraction output Sum = A-B.
   // Overflow occurs when the numbers being subtracted have the opposite sign 
   // and the result has the opposite sign of A.
@@ -69,8 +73,12 @@ module alu #(parameter WIDTH=`XLEN) (
   assign Neg  = Sum1[WIDTH-1];
   assign Asign = A[WIDTH-1];
   assign Bsign = B[WIDTH-1];
-  assign LT = Asign & ~Bsign | Asign & Neg | ~Bsign & Neg; 
-  assign LTU = ~Carry1;
+
+  //assign LT = Asign & ~Bsign | Asign & Neg | ~Bsign & Neg; 
+  //assign LTU = ~Carry1;
+  
+  assign LT = (afs<bfs);
+  assign LTU = (af<bf);
  
   // Select appropriate ALU Result
   always_comb begin
