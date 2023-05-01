@@ -1,4 +1,4 @@
-module configurablemultiplier(
+module configurablemultiplierb0t (
     input logic [1:0] x0,x1,x2,x3,
     input logic [1:0] y0,y1,y2,y3,
     input logic xs0,xs1,xs2,xs3,
