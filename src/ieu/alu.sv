@@ -62,21 +62,25 @@ module alu #(parameter WIDTH=`XLEN) (
   // Shifts (configurable for rotation)
   shifter sh(.A, .Amt(B[`LOG_XLEN-1:0]), .Right(Funct3[2]), .W64, .SubArith, .Y(Shift), .Rotate(BALUControl[2]));
   logic [WIDTH-1:0]af,bf,afs,bfs;
-  assign af = {A[WIDTH-1] ^ ~Funct3[0], A[WIDTH-2:0]};
-  assign bf = {B[WIDTH-1] ^ ~Funct3[0], B[WIDTH-2:0]};
-  // Condition code flags are based on subtraction output Sum = A-B.
-  // Overflow occurs when the numbers being subtracted have the opposite sign 
-  // and the result has the opposite sign of A.
-  // LT is simplified from Overflow = Asign & Bsign & Asign & Neg; LT = Neg ^ Overflow
-  assign Neg  = Sum1[WIDTH-1];
-  assign Asign = A[WIDTH-1];
-  assign Bsign = B[WIDTH-1];
+  if (`ZBB_SUPPORTED) begin
+    assign af = {A[WIDTH-1] ^ ~Funct3[0], A[WIDTH-2:0]};
+    assign bf = {B[WIDTH-1] ^ ~Funct3[0], B[WIDTH-2:0]};
+    // Condition code flags are based on subtraction output Sum = A-B.
+    // Overflow occurs when the numbers being subtracted have the opposite sign 
+    // and the result has the opposite sign of A.
+    // LT is simplified from Overflow = Asign & Bsign & Asign & Neg; LT = Neg ^ Overflow
 
-  //assign LT = Asign & ~Bsign | Asign & Neg | ~Bsign & Neg; 
-  //assign LTU = ~Carry1;
-  
-  assign LTU = (af<bf);
-  assign LT = LTU;
+    
+    assign LTU = (af<bf);
+    assign LT = LTU;
+  end
+  else begin 
+    assign Neg  = Sum[WIDTH-1];
+    assign Asign = A[WIDTH-1];
+    assign Bsign = B[WIDTH-1];
+    assign LT = Asign & ~Bsign | Asign & Neg | ~Bsign & Neg; 
+    assign LTU = ~Carry;
+  end
  
   // Select appropriate ALU Result
   always_comb begin
