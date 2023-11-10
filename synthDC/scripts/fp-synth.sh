@@ -1,5 +1,47 @@
 #!/bin/bash
 
+# RVF
+setRVF () {
+n64=$(grep -n "MISA =" $WALLY/config/rv64gc/config.vh | cut -d: -f1)
+n32=$(grep -n "MISA =" $WALLY/config/rv32gc/config.vh | cut -d: -f1)
+sed -i "${n64}s/MISA.*/MISA = (32\'h00000104 | 1 << 20 | 1 << 18 | 1<< 12 | 1 << 0 | 1 << 5);/" $WALLY/config/rv64gc/config.vh
+sed -i "${n32}s/MISA.*/MISA = (32\'h00000104 | 1 << 20 | 1 << 18 | 1<< 12 | 1 << 0 | 1 << 5);/" $WALLY/config/rv32gc/config.vh
+
+n64=$(grep -n "F =" $WALLY/config/rv64gc/config.vh | cut -d: -f1)
+n32=$(grep -n "F =" $WALLY/config/rv32gc/config.vh | cut -d: -f1)
+sed -i "${n64}s/F =.*/F = F/" $WALLY/config/rv64gc/config.vh
+sed -i "${n32}s/F =.*/F = F/" $WALLY/config/rv32gc/config.vh
+
+}
+
+# RVD
+setRVD () {
+n64=$(grep -n "MISA =" $WALLY/config/rv64gc/config.vh | cut -d: -f1)
+n32=$(grep -n "MISA =" $WALLY/config/rv32gc/config.vh | cut -d: -f1)
+sed -i "${n64}s/MISA.*/MISA = (32\'h00000104 | 1 << 20 | 1 << 18 | 1<< 12 | 1 << 0 | 1 << 5 | 1 << 3);/" $WALLY/config/rv64gc/config.vh
+sed -i "${n32}s/MISA.*/MISA = (32\'h00000104 | 1 << 20 | 1 << 18 | 1<< 12 | 1 << 0 | 1 << 5 | 1 << 3);/" $WALLY/config/rv32gc/config.vh
+
+n64=$(grep -n "F =" $WALLY/config/rv64gc/config.vh | cut -d: -f1)
+n32=$(grep -n "F =" $WALLY/config/rv32gc/config.vh | cut -d: -f1)
+sed -i "${n64}s/F =.*/F = D/" $WALLY/config/rv64gc/config.vh
+sed -i "${n32}s/F =.*/F = D/" $WALLY/config/rv32gc/config.vh
+
+}
+
+# RVD
+setRVQ () {
+n64=$(grep -n "MISA =" $WALLY/config/rv64gc/config.vh | cut -d: -f1)
+n32=$(grep -n "MISA =" $WALLY/config/rv32gc/config.vh | cut -d: -f1)
+sed -i "${n64}s/MISA.*/MISA = (32\'h00000104 | 1 << 20 | 1 << 16 | 1 << 18 | 1<< 12 | 1 << 0 | 1 << 5 | 1 << 3);/" $WALLY/config/rv64gc/config.vh
+sed -i "${n32}s/MISA.*/MISA = (32\'h00000104 | 1 << 20 | 1 << 16 | 1 << 18 | 1<< 12 | 1 << 0 | 1 << 5 | 1 << 3);/" $WALLY/config/rv32gc/config.vh
+
+n64=$(grep -n "F =" $WALLY/config/rv64gc/config.vh | cut -d: -f1)
+n32=$(grep -n "F =" $WALLY/config/rv32gc/config.vh | cut -d: -f1)
+sed -i "${n64}s/F =.*/F = Q/" $WALLY/config/rv64gc/config.vh
+sed -i "${n32}s/F =.*/F = Q/" $WALLY/config/rv32gc/config.vh
+
+}
+
 # RADIX 2
 setRADIXeq2 () {
 n64=$(grep -n "RADIX" $WALLY/config/rv64gc/config.vh | cut -d: -f1)
@@ -127,11 +169,13 @@ make -C $WALLY/synthDC synth DESIGN=fdivsqrtiter TECH=tsmc28 CONFIG=rv64gc FREQ=
 # forms title for synthesis
 
 getTitle () {
-RADIX=$(sed -n "157p" $WALLY/config/rv64gc/config.vh | tail -c 3 | head -c 1)
-K=$(sed -n "158p" $WALLY/config/rv64gc/config.vh | tail -c 3 | head -c 1)
-IDIV=$(sed -n "81p" $WALLY/config/rv64gc/config.vh | tail -c 3 | head -c 1)
-IDIVBITS=$(sed -n "80p" $WALLY/config/rv64gc/config.vh | tail -c 3 | head -c 1)
-title="RADIX_${RADIX}_K_${K}_INTDIV_${IDIV}_IDIVBITS_${IDIVBITS}"
+RADIX=$(sed -n "158p" $WALLY/config/rv64gc/config.vh | tail -c 3 | head -c 1)
+K=$(sed -n "159p" $WALLY/config/rv64gc/config.vh | tail -c 3 | head -c 1)
+IDIV=$(sed -n "82p" $WALLY/config/rv64gc/config.vh | tail -c 3 | head -c 1)
+IDIVBITS=$(sed -n "81p" $WALLY/config/rv64gc/config.vh | tail -c 3 | head -c 1)
+FPMODELINE=($(sed -n "42p" $WALLY/config/rv64gc/config.vh)) 
+FPMODE=${FPMODELINE[3]}
+title="RADIX_${RADIX}_K_${K}_INTDIV_${IDIV}_IDIVBITS_${IDIVBITS}_FPMODE_${FPMODE}"
 echo $title
 }
 
@@ -159,33 +203,170 @@ writeCSV () {
 
 go() {
 
-<< comment
+
 setIDIVeq1
+# K = 1, R = 4
 setKeq1
 setRADIXeq4
+
+setRVF
 synthFPDiv
-wait
+
+setRVD
+synthFPDiv
+
+setRVQ
+synthFPDiv
+
+# K = 2, R = 2
 setKeq2
 setRADIXeq2
 synthFPDiv
-wait
-comment
-setIDIVBITSeq1
-synthIntDiv
-setIDIVBITSeq2
-synthIntDiv
-setIDIVBITSeq4
-synthIntDiv
-<< comment
+
+setRVF
+synthFPDiv
+
+setRVD
+synthFPDiv
+
+setRVQ
+synthFPDiv
+
+# K = 1, R = 2
+setKeq1
+setRADIXeq2
+
+setRVF
+synthFPDiv
+
+setRVD
+synthFPDiv
+
+setRVQ
+synthFPDiv
+
+# K = 2, R =4
+setKeq2
+setRADIXeq4
+
+setRVF
+synthFPDiv
+
+setRVD
+synthFPDiv
+
+setRVQ
+synthFPDiv
+
+# K = 4, R = 2
+setKeq4
+setRADIXeq2
+
+setRVF
+synthFPDiv
+
+setRVD
+synthFPDiv
+
+setRVQ
+synthFPDiv
+
+# K = 4, R = 4
+setKeq4
+setRADIXeq4
+
+setRVF
+synthFPDiv
+
+setRVD
+synthFPDiv
+
+setRVQ
+synthFPDiv
+
 setIDIVeq0
+
+# K = 1, R = 4
 setKeq1
 setRADIXeq4
+
+setRVF
 synthFPDiv
-wait
+
+setRVD
+synthFPDiv
+
+setRVQ
+synthFPDiv
+
+# K = 2, R = 2
 setKeq2
 setRADIXeq2
 synthFPDiv
-comment
+
+setRVF
+synthFPDiv
+
+setRVD
+synthFPDiv
+
+setRVQ
+synthFPDiv
+
+# K = 1, R = 2
+setKeq1
+setRADIXeq2
+
+setRVF
+synthFPDiv
+
+setRVD
+synthFPDiv
+
+setRVQ
+synthFPDiv
+
+# K = 2, R =4
+setKeq2
+setRADIXeq4
+
+setRVF
+synthFPDiv
+
+setRVD
+synthFPDiv
+
+setRVQ
+synthFPDiv
+
+# K = 4, R = 2
+setKeq4
+setRADIXeq2
+
+setRVF
+synthFPDiv
+
+setRVD
+synthFPDiv
+
+setRVQ
+synthFPDiv
+
+# K = 4, R = 4
+setKeq4
+setRADIXeq4
+
+setRVF
+synthFPDiv
+
+setRVD
+synthFPDiv
+
+setRVQ
+synthFPDiv
+
+
+
 
 
 
@@ -194,14 +375,42 @@ comment
 
 go2() {
 
-setIDIVeq1
+
+setIDIVeq0
+
+# K = 1, R = 4
+setKeq1
 setRADIXeq4
+
+synthIntDiv
+
+# K = 2, R = 2
 setKeq2
-synthFPDiv
-wait
 setRADIXeq2
+synthIntDiv
+
+# K = 1, R = 2
+setKeq1
+setRADIXeq2
+
+synthIntDiv
+
+# K = 2, R =4
+setKeq2
+setRADIXeq4
+
+synthIntDiv
+
+# K = 4, R = 2
 setKeq4
-synthFPDiv
-wait
+setRADIXeq2
+
+synthIntDiv
+
+# K = 4, R = 4
+setKeq4
+setRADIXeq4
+
+synthIntDiv
 
 }
