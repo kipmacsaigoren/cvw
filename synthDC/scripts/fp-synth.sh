@@ -124,20 +124,20 @@ sed -i "${n32}s/IDIV_ON_FPU.*/IDIV_ON_FPU = 0;/" $WALLY/config/rv32gc/config.vh
 
 # Synthesize Integer Divider
 synthIntDiv () {
-make -C $WALLY/synthDC synth DESIGN=div TECH=tsmc28 CONFIG=rv32gc FREQ=3000 WRAPPER=1 TITLE=$(getTitle) &
-make -C $WALLY/synthDC synth DESIGN=div TECH=tsmc28 CONFIG=rv64gc FREQ=3000 WRAPPER=1 TITLE=$(getTitle) &
-make -C $WALLY/synthDC synth DESIGN=div TECH=tsmc28 CONFIG=rv32gc FREQ=100 WRAPPER=1 TITLE=$(getTitle) &
-make -C $WALLY/synthDC synth DESIGN=div TECH=tsmc28 CONFIG=rv64gc FREQ=100 WRAPPER=1 TITLE=$(getTitle) &
+make -C $WALLY/synthDC synth DESIGN=div TECH=tsmc28 CONFIG=rv32gc FREQ=3000 TITLE=$(getTitle) &
+make -C $WALLY/synthDC synth DESIGN=div TECH=tsmc28 CONFIG=rv64gc FREQ=3000 TITLE=$(getTitle) &
+make -C $WALLY/synthDC synth DESIGN=div TECH=tsmc28 CONFIG=rv32gc FREQ=100 TITLE=$(getTitle) &
+make -C $WALLY/synthDC synth DESIGN=div TECH=tsmc28 CONFIG=rv64gc FREQ=100 TITLE=$(getTitle) &
 wait
 }
 
 # Synthesize FP Divider Unit
 
 synthFPDiv () {
-make -C $WALLY/synthDC synth DESIGN=drsu TECH=tsmc28 CONFIG=rv32gc FREQ=3000 WRAPPER=1 TITLE=$(getTitle) &
-make -C $WALLY/synthDC synth DESIGN=drsu TECH=tsmc28 CONFIG=rv64gc FREQ=3000 WRAPPER=1 TITLE=$(getTitle) &
-make -C $WALLY/synthDC synth DESIGN=drsu TECH=tsmc28 CONFIG=rv32gc FREQ=100 WRAPPER=1 TITLE=$(getTitle) &
-make -C $WALLY/synthDC synth DESIGN=drsu TECH=tsmc28 CONFIG=rv64gc FREQ=100 WRAPPER=1 TITLE=$(getTitle) &
+make -C $WALLY/synthDC synth DESIGN=drsu TECH=tsmc28 CONFIG=rv32gc FREQ=3000 TITLE=$(getTitle) &
+make -C $WALLY/synthDC synth DESIGN=drsu TECH=tsmc28 CONFIG=rv64gc FREQ=3000 TITLE=$(getTitle) &
+make -C $WALLY/synthDC synth DESIGN=drsu TECH=tsmc28 CONFIG=rv32gc FREQ=100 TITLE=$(getTitle) &
+make -C $WALLY/synthDC synth DESIGN=drsu TECH=tsmc28 CONFIG=rv64gc FREQ=100 TITLE=$(getTitle) &
 wait
 }
 
@@ -153,17 +153,17 @@ synthAll () {
 # Synthesize DivSqrt Preprocessor
 
 synthFPDivsqrtpreproc () {
-make -C $WALLY/synthDC synth DESIGN=fdivsqrtpreproc TECH=tsmc28 CONFIG=rv32gc FREQ=3000 WRAPPER=1 TITLE=$(getTitle)
-make -C $WALLY/synthDC synth DESIGN=fdivsqrtpreproc TECH=tsmc28 CONFIG=rv64gc FREQ=3000 WRAPPER=1 TITLE=$(getTitle)
-make -C $WALLY/synthDC synth DESIGN=fdivsqrtpreproc TECH=tsmc28 CONFIG=rv32gc FREQ=100 WRAPPER=1 TITLE=$(getTitle)
-make -C $WALLY/synthDC synth DESIGN=fdivsqrtpreproc TECH=tsmc28 CONFIG=rv64gc FREQ=100 WRAPPER=1 TITLE=$(getTitle)
+make -C $WALLY/synthDC synth DESIGN=fdivsqrtpreproc TECH=tsmc28 CONFIG=rv32gc FREQ=3000 TITLE=$(getTitle)
+make -C $WALLY/synthDC synth DESIGN=fdivsqrtpreproc TECH=tsmc28 CONFIG=rv64gc FREQ=3000 TITLE=$(getTitle)
+make -C $WALLY/synthDC synth DESIGN=fdivsqrtpreproc TECH=tsmc28 CONFIG=rv32gc FREQ=100 TITLE=$(getTitle)
+make -C $WALLY/synthDC synth DESIGN=fdivsqrtpreproc TECH=tsmc28 CONFIG=rv64gc FREQ=100 TITLE=$(getTitle)
 }
 
 synthFPDiviter () {
-make -C $WALLY/synthDC synth DESIGN=fdivsqrtiter TECH=tsmc28 CONFIG=rv32gc FREQ=3000 WRAPPER=1 TITLE=$(getTitle)
-make -C $WALLY/synthDC synth DESIGN=fdivsqrtiter TECH=tsmc28 CONFIG=rv64gc FREQ=3000 WRAPPER=1 TITLE=$(getTitle)
-make -C $WALLY/synthDC synth DESIGN=fdivsqrtiter TECH=tsmc28 CONFIG=rv32gc FREQ=100 WRAPPER=1 TITLE=$(getTitle)
-make -C $WALLY/synthDC synth DESIGN=fdivsqrtiter TECH=tsmc28 CONFIG=rv64gc FREQ=100 WRAPPER=1 TITLE=$(getTitle)
+make -C $WALLY/synthDC synth DESIGN=fdivsqrtiter TECH=tsmc28 CONFIG=rv32gc FREQ=3000 TITLE=$(getTitle)
+make -C $WALLY/synthDC synth DESIGN=fdivsqrtiter TECH=tsmc28 CONFIG=rv64gc FREQ=3000 TITLE=$(getTitle)
+make -C $WALLY/synthDC synth DESIGN=fdivsqrtiter TECH=tsmc28 CONFIG=rv32gc FREQ=100 TITLE=$(getTitle)
+make -C $WALLY/synthDC synth DESIGN=fdivsqrtiter TECH=tsmc28 CONFIG=rv64gc FREQ=100 TITLE=$(getTitle)
 }
 
 # forms title for synthesis
