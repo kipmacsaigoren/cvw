@@ -75,8 +75,8 @@ module drsu import cvw::*;  #(parameter cvw_t P) (
   logic                       NegQuotM, ALTBM, AsM, W64M;   // Special handling for postprocessor
   logic [P.XLEN-1:0]           AM;                           // Original Numerator for postprocessor
   logic                       ISpecialCaseE;                // Integer div/remainder special cases
-  logic [P.DIVb:0]             QmM;
-  logic [P.NE+1:0]             QeM;
+  logic [P.DIVb:0]             UmM;
+  logic [P.NE+1:0]             UeM;
   logic                       DivStickyM;
 
   divremsqrt #(P) divremsqrt(.clk, .reset, .XsE, .FmtE, .XmE, .YmE, 
@@ -84,13 +84,13 @@ module drsu import cvw::*;  #(parameter cvw_t P) (
                     .XInfE, .YInfE, .XZeroE, .YZeroE, 
             .XNaNE, .YNaNE, 
                     .FDivStartE, .IDivStartE, .W64E,
-                    .StallM, .DivStickyM, .FDivBusyE, .QeM,
-                    .QmM,
+                    .StallM, .DivStickyM, .FDivBusyE, .UeM,
+                    .UmM,
                     .FlushE, .ForwardedSrcAE, .ForwardedSrcBE, .Funct3M,
                     .Funct3E, .IntDivE, .FIntDivResultM,
                     .FDivDoneE, .IFDivStartE);
   divremsqrtpostprocess #(P) divremsqrtpostprocess(.Xs(XsE), .Ys(YsE), .Xm(XmE), .Ym(YmE), .Frm(Frm), .Fmt(FmtE), .OpCtrl,
     .XZero(XZeroE), .YZero(YZeroE), .XInf(XInfE), .YInf(YInfE), .XNaN(XNaNE), .YNaN(YNaNE), .XSNaN(XSNaNE), 
-    .YSNaN(YSNaNE), .PostProcSel,.DivSticky(DivStickyM), .DivQe(QeM), .DivQm(QmM), .PostProcRes(FResM), .PostProcFlg(FlgM));
+    .YSNaN(YSNaNE), .PostProcSel,.DivSticky(DivStickyM), .DivUe(UeM), .DivUm(UmM), .PostProcRes(FResM), .PostProcFlg(FlgM));
 endmodule
 

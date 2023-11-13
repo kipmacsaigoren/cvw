@@ -76,8 +76,8 @@ module fdivsqrtcycles import cvw::*;  #(parameter cvw_t P) (
     if (P.IDIV_ON_FPU) ResultBitsE = IntDivE ? IntResultBitsE : FPResultBitsE;
     else               ResultBitsE = FPResultBitsE;
 
-    assign CyclesE = (ResultBitsE-1)/(P.RK) + 1; // ceil (ResultBitsE/rk)
   end 
+  assign CyclesE = (ResultBitsE-1)/(P.RK) + 1; // ceil (ResultBitsE/rk)
   /* verilator lint_on WIDTH */
 
 endmodule

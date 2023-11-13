@@ -42,8 +42,8 @@ module divremsqrtpostprocess import cvw::*;  #(parameter cvw_t P)  (
   //fma signals
   //divide signals
   input logic                             DivSticky,  // divider sticky bit
-  input logic  [P.NE+1:0]                  DivQe,      // divsqrt exponent
-  input logic  [P.DIVb:0]                  DivQm,      // divsqrt significand
+  input logic  [P.NE+1:0]                  DivUe,      // divsqrt exponent
+  input logic  [P.DIVb:0]                  DivUm,      // divsqrt significand
   // final results
   output logic [P.FLEN-1:0]                PostProcRes,// postprocessor final result
   output logic [4:0]                      PostProcFlg // postprocesser flags
@@ -69,7 +69,7 @@ module divremsqrtpostprocess import cvw::*;  #(parameter cvw_t P)  (
   // division singals
   logic [P.LOGNORMSHIFTSZ-1:0] DivShiftAmt;        // divsqrt shif amount
   logic [P.NORMSHIFTSZ-1:0]    DivShiftIn;         // divsqrt shift input
-  logic [P.NE+1:0]             Qe;                 // divsqrt corrected exponent after corretion shift
+  logic [P.NE+1:0]             Ue;                 // divsqrt corrected exponent after corretion shift
   logic                       DivByZero;          // divide by zero flag
   logic                       DivResSubnorm;      // is the divsqrt result subnormal
   logic                       DivSubnormShiftPos; // is the divsqrt subnorm shift amout positive (not underflowed)
@@ -122,7 +122,7 @@ module divremsqrtpostprocess import cvw::*;  #(parameter cvw_t P)  (
   /*cvtshiftcalc cvtshiftcalc(.ToInt, .CvtCe, .CvtResSubnormUf, .Xm, .CvtLzcIn,  
       .XZero, .IntToFp, .OutFmt, .CvtResUf, .CvtShiftIn);*/
 
-  divshiftcalc #(P) divshiftcalc(.DivQe, .DivQm, .DivResSubnorm, .DivSubnormShiftPos, .DivShiftAmt, .DivShiftIn);
+  divshiftcalc #(P) divshiftcalc(.DivUe, .DivUm, .DivResSubnorm, .DivSubnormShiftPos, .DivShiftAmt, .DivShiftIn);
 
   assign ShiftAmt = DivShiftAmt;
   assign ShiftIn = DivShiftIn;
@@ -131,7 +131,7 @@ module divremsqrtpostprocess import cvw::*;  #(parameter cvw_t P)  (
   normshift #(P) normshift (.ShiftIn, .ShiftAmt, .Shifted);
 
   // correct for LZA/divsqrt error
-  divremsqrtshiftcorrection #(P) shiftcorrection(.DivResSubnorm, .DivSubnormShiftPos, .DivOp, .DivQe, .Qe, .Shifted, .Mf);
+  divremsqrtshiftcorrection #(P) shiftcorrection(.DivResSubnorm, .DivSubnormShiftPos, .DivOp, .DivUe, .Ue, .Shifted, .Mf);
 
   ///////////////////////////////////////////////////////////////////////////////
   // Rounding
@@ -146,7 +146,7 @@ module divremsqrtpostprocess import cvw::*;  #(parameter cvw_t P)  (
   // calulate result sign used in rounding unit
   divremsqrtroundsign #(P) roundsign( .DivOp, .Sqrt, .Xs, .Ys, .Ms);
 
-  divremsqrtround #(P) round(.OutFmt, .Frm, .Plus1, .Qe,
+  divremsqrtround #(P) round(.OutFmt, .Frm, .Plus1, .Ue,
       .Ms, .Mf, .DivSticky, .DivOp, .UfPlus1, .FullRe, .Rf, .Re, .Sticky, .Round, .Guard, .Me);
 
   ///////////////////////////////////////////////////////////////////////////////

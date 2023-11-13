@@ -36,7 +36,7 @@ module divremsqrtround import cvw::*;  #(parameter cvw_t P)  (
   // divsqrt
   input  logic                    DivOp,              // is a division opperation being done
   input  logic                    DivSticky,          // divsqrt sticky bit
-  input  logic [P.NE+1:0]          Qe,                 // the divsqrt calculated expoent
+  input  logic [P.NE+1:0]          Ue,                 // the divsqrt calculated expoent
   // outputs
   output logic [P.NE+1:0]          Me,                 // normalied fraction
   output logic                    UfPlus1,            // do you add one to the result if given an unbounded exponent
@@ -295,7 +295,7 @@ module divremsqrtround import cvw::*;  #(parameter cvw_t P)  (
 
 
   // select the exponent
-  assign Me = Qe;
+  assign Me = Ue;
 
 
 
