@@ -117,8 +117,8 @@ module testbenchfp;
    logic 			FlushE;
    logic 			IFDivStartE;
    logic 			FDivDoneE;
-   logic [P.NE+1:0] 		QeM;
-   logic [P.DIVb:0] 		QmM;
+   logic [P.NE+1:0] 		UeM;
+   logic [P.DIVb:0] 		UmM;
    logic [P.XLEN-1:0] 		FIntDivResultM;
    logic  		IntDivE;
    logic 			ResMatch;                   // Check if result match
@@ -150,9 +150,12 @@ module testbenchfp;
    
    initial begin
       // Information displayed for user on what is simulating
-      $display("\nThe start of simulation...");      
-      $display("This simulation for TEST is %s", TEST);
-      $display("This simulation for TEST is of the operand size of %s", TEST_SIZE);      
+      //$display("\nThe start of simulation...");      
+      //$display("This simulation for TEST is %s", TEST);
+      //$display("This simulation for TEST is of the operand size of %s", TEST_SIZE);      
+
+      // $display("FPDUR %d %d DIVN %d LOGR %d RK %d RADIX %d DURLEN %d", FPDUR, DIVN, LOGR, RK, RADIX, DURLEN);
+
       if (P.Q_SUPPORTED & (TEST_SIZE == "QP" | TEST_SIZE == "all")) begin // if Quad percision is supported
    if (TEST === "cvtint" | TEST === "all") begin  // if testing integer conversion
             // add the 128-bit cvtint tests to the to-be-tested list
@@ -743,12 +746,12 @@ module testbenchfp;
    // Read the first test
    initial begin
       //string testname = {`PATH, Tests[TestNum]}; 
-      string p = `PATH;
+      static string pp = `PATH;
       string testname;
       string tt0;
       tt0 = $psprintf("%s", Tests[TestNum]);
-      testname = {p, tt0};
-      $display("Here you are %s", testname);     
+      testname = {pp, tt0};
+      //$display("Here you are %s", testname);     
       $display("\n\nRunning %s vectors ", Tests[TestNum]);
       $readmemh(testname, TestVectors);
       // set the test index to 0

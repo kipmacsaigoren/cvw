@@ -12,10 +12,11 @@ suppress_message {VER-130}
 # statements in initial blocks are ignored
 suppress_message {VER-281} 
 suppress_message {VER-173} 
+ # Unsupported system task '$warn'
+suppress_message {VER-274}
 
 # Enable Multicore
 set_host_options -max_cores $::env(MAXCORES)
-
 
 # get outputDir and configDir from environment (Makefile)
 set outputDir $::env(OUTPUTDIR)
@@ -24,17 +25,21 @@ set hdl_src "../src"
 set saifpower $::env(SAIFPOWER)
 set maxopt $::env(MAXOPT)
 set drive $::env(DRIVE)
-set wrapper $::env(WRAPPER)
+set width $::env(WIDTH)
 
 eval file copy -force [glob ${cfg}/*.vh] {$outputDir/hdl/}
 eval file copy -force [glob ${hdl_src}/cvw.sv] {$outputDir/hdl/}
-#eval file copy -force [glob ${hdl_src}/../fpga/src/wallypipelinedsocwrapper.sv] {$outputDir/hdl/}
 eval file copy -force [glob ${hdl_src}/*/*.sv] {$outputDir/hdl/}
 eval file copy -force [glob ${hdl_src}/*/*/*.sv] {$outputDir/hdl/}
-if {$wrapper ==1 } {
-    eval file copy -force [glob ${hdl_src}/../synthDC/wrappers/$::env(DESIGN)wrapper.sv] {$outputDir/hdl/}
-}
 
+# Check if a wrapper is needed and create it (to pass parameters when cvw_t parameters are used)
+set wrapper 0
+if {[catch {eval exec grep "cvw_t" $outputDir/hdl/$::env(DESIGN).sv}] == 0} {
+    echo "Creating wrapper"
+    set wrapper 1
+    # make the wrapper
+	exec python3 $::env(WALLY)/synthDC/scripts/wrapperGen.py $::env(DESIGN) $outputDir/hdl
+}
 
 # Enables name mapping
 if { $saifpower == 1 } {
@@ -51,6 +56,7 @@ if { $wrapper == 1 } {
 } else {
     set my_toplevel $::env(DESIGN)
 }
+set my_design $::env(DESIGN)
 
 # Set number of significant digits
 set report_default_significant_digits 6
@@ -83,7 +89,13 @@ if { [shell_is_in_topographical_mode] } {
 #set alib_library_analysis_path ./$outputDir
 define_design_lib WORK -path ./$outputDir/WORK
 analyze -f sverilog -lib WORK $my_verilog_files
-elaborate $my_toplevel -lib WORK 
+# If wrapper=0, we want to run against a specific module and pass
+# width to DC
+if { $wrapper == 1 } {
+    elaborate $my_toplevel -lib WORK 
+} else {
+    elaborate $my_toplevel -lib WORK -parameters WIDTH=$width
+}
 
 # Set the current_design 
 current_design $my_toplevel
@@ -102,6 +114,7 @@ if { $saifpower == 1 } {
 if {$drive != "INV"} {
     set_false_path -from [get_ports reset]
 }
+# for PPA multiplexer synthesis
 if {(($::env(DESIGN) == "ppa_mux2d_1") || ($::env(DESIGN) == "ppa_mux4d_1") || ($::env(DESIGN) == "ppa_mux8d_1"))} {
     set_false_path -from {s}
 }
@@ -119,11 +132,12 @@ if {  $find_clock != [list] } {
     set my_clk $my_clock_pin
     create_clock -period $my_period $my_clk
     set_clock_uncertainty $my_uncertainty [get_clocks $my_clk]
-} else {
+ } else {
     echo "Did not find clock! Design is probably combinational!"
     set my_clk vclk
     create_clock -period $my_period -name $my_clk
 }
+
 
 # Optimize paths that are close to critical
 set_critical_range 0.05 $current_design
@@ -143,18 +157,22 @@ set all_in_ex_clk [remove_from_collection [all_inputs] [get_ports $my_clk]]
 
 # Setting constraints on input ports 
 if {$tech == "sky130"} {
-    set_driving_cell  -lib_cell sky130_osu_sc_12T_ms__dff_1 -pin Q $all_in_ex_clk
+    if {$drive == "INV"} {
+	    set_driving_cell -lib_cell inv -pin Y $all_in_ex_clk
+    } elseif {$drive == "FLOP"} {
+	    set_driving_cell  -lib_cell sky130_osu_sc_12T_ms__dff_1 -pin Q $all_in_ex_clk
+    }
 } elseif {$tech == "sky90"} {
     if {$drive == "INV"} {
-	set_driving_cell -lib_cell scc9gena_inv_1 -pin Y $all_in_ex_clk
+	    set_driving_cell -lib_cell scc9gena_inv_1 -pin Y $all_in_ex_clk
     } elseif {$drive == "FLOP"} {
-	set_driving_cell  -lib_cell scc9gena_dfxbp_1 -pin Q $all_in_ex_clk
+	    set_driving_cell  -lib_cell scc9gena_dfxbp_1 -pin Q $all_in_ex_clk
     }
 } elseif {$tech == "tsmc28" || $tech=="tsmc28psyn"} {
     if {$drive == "INV"} {
-	set_driving_cell -lib_cell INVD1BWP30P140 -pin ZN $all_in_ex_clk
+	    set_driving_cell -lib_cell INVD1BWP30P140 -pin ZN $all_in_ex_clk
     } elseif {$drive == "FLOP"} {
-    set_driving_cell -lib_cell DFQD1BWP30P140 -pin Q $all_in_ex_clk
+        set_driving_cell -lib_cell DFQD1BWP30P140 -pin Q $all_in_ex_clk
     }
 }
 
@@ -169,16 +187,20 @@ if {$drive == "FLOP"} {
 
 # Setting load constraint on output ports 
 if {$tech == "sky130"} {
-    set_load [expr [load_of sky130_osu_sc_12T_ms_TT_1P8_25C.ccs/sky130_osu_sc_12T_ms__dff_1/D] * 1] [all_outputs]
-} elseif {$tech == "sky90"} {
     if {$drive == "INV"} {
-	set_load [expr [load_of scc9gena_tt_1.2v_25C/scc9gena_inv_4/A] * 1] [all_outputs]
+	    set_load [expr [load_of sky130_osu_sc_12T_ms_TT_1P8_25C.ccs/sky130_osu_sc_12T_ms__inv_4/A] * 1] [all_outputs]
+    } elseif {$drive == "FLOP"} {
+        set_load [expr [load_of sky130_osu_sc_12T_ms_TT_1P8_25C.ccs/sky130_osu_sc_12T_ms__dff_1/D] * 1] [all_outputs]
+    }
+ } elseif {$tech == "sky90"} {
+    if {$drive == "INV"} {
+	    set_load [expr [load_of scc9gena_tt_1.2v_25C/scc9gena_inv_4/A] * 1] [all_outputs]
     } elseif {$drive == "FLOP"} {
         set_load [expr [load_of scc9gena_tt_1.2v_25C/scc9gena_dfxbp_1/D] * 1] [all_outputs]
     }
 } elseif {$tech == "tsmc28" || $tech == "tsmc28psyn"} {
     if {$drive == "INV"} {
-	set_load [expr [load_of tcbn28hpcplusbwp30p140tt0p9v25c/INVD4BWP30P140/I] * 1] [all_outputs]
+	    set_load [expr [load_of tcbn28hpcplusbwp30p140tt0p9v25c/INVD4BWP30P140/I] * 1] [all_outputs]
     } elseif {$drive == "FLOP"} {
         set_load [expr [load_of tcbn28hpcplusbwp30p140tt0p9v25c/DFQD1BWP30P140/D] * 1] [all_outputs]
     }
@@ -236,6 +258,25 @@ set write_rep  1	;# generates estimated area and timing report
 set write_cst  1        ;# generate report of constraints
 set write_hier 1        ;# generate hierarchy report
 
+# Report on DESIGN, not wrapper.  However, design has a suffix for the parameters.
+if { $wrapper == 1 } {
+    set designname [format "%s%s" $my_design "__*"]
+    current_design $designname
+
+    # recreate clock below wrapper level or reporting doesn't work properly
+    set find_clock [ find port [list $my_clock_pin] ]
+    if {  $find_clock != [list] } {
+        echo "Found clock!"
+        set my_clk $my_clock_pin
+        create_clock -period $my_period $my_clk
+        set_clock_uncertainty $my_uncertainty [get_clocks $my_clk]
+    } else {
+        echo "Did not find clock! Design is probably combinational!"
+        set my_clk vclk
+        create_clock -period $my_period -name $my_clk
+    }
+} 
+
 # Report Constraint Violators
 set filename [format "%s%s" $outputDir "/reports/constraint_all_violators.rpt"]
 redirect $filename {report_constraint -all_violators}
@@ -244,16 +285,16 @@ redirect $filename {report_constraint -all_violators}
 redirect $outputDir/reports/check_design.rpt { check_design }
 
 # Report Final Netlist (Hierarchical)
-set filename [format "%s%s%s%s" $outputDir "/mapped/" $my_toplevel ".sv"]
+set filename [format "%s%s%s%s" $outputDir "/mapped/" $my_design ".sv"]
 write_file -f verilog -hierarchy -output $filename
 
-set filename [format "%s%s%s%s" $outputDir "/mapped/" $my_toplevel ".sdc"]
+set filename [format "%s%s%s%s" $outputDir "/mapped/" $my_design ".sdc"]
 write_sdc $filename
 
-set filename [format "%s%s%s%s" $outputDir  "/mapped/" $my_toplevel ".ddc"]
+set filename [format "%s%s%s%s" $outputDir  "/mapped/" $my_design ".ddc"]
 write_file -format ddc -hierarchy -o $filename
 
-set filename [format "%s%s%s%s" $outputDir "/mapped/" $my_toplevel ".sdf"]
+set filename [format "%s%s%s%s" $outputDir "/mapped/" $my_design ".sdf"]
 write_sdf $filename
 
 # QoR
@@ -274,6 +315,8 @@ set filename [format "%s%s" $outputDir  "/reports/mindelay.rep"]
 redirect $filename { report_timing -capacitance -transition_time -nets -delay_type min -nworst 1 }
 
 set filename [format "%s%s" $outputDir  "/reports/per_module_timing.rep"]
+redirect -append $filename { echo "\n\n\n//// Critical paths through Stall ////\n\n\n" }
+redirect -append $filename { report_timing -capacitance -transition_time -nets -through {Stall*} -nworst 1 }
 redirect -append $filename { echo "\n\n\n//// Critical paths through ifu ////\n\n\n" }
 redirect -append $filename { report_timing -capacitance -transition_time -nets -through {ifu/*} -nworst 1 }
 redirect -append $filename { echo "\n\n\n//// Critical paths through ieu ////\n\n\n" }

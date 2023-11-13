@@ -120,8 +120,8 @@ sudo apt-get install -y perl g++ ccache help2man libgoogle-perftools-dev numactl
 sudo apt-get install -y libfl2  libfl-dev  # Ubuntu only (ignore if gives error)
 cd $RISCV
 git clone https://github.com/verilator/verilator   # Only first time
-unsetenv VERILATOR_ROOT  # For csh; ignore error if on bash
-unset VERILATOR_ROOT  # For bash
+# unsetenv VERILATOR_ROOT  # For csh; ignore error if on bash
+unset VERILATOR_ROOT     # For bash
 cd verilator
 git pull         # Make sure git repository is up-to-date
 git checkout master      # Use development branch (e.g. recent bug fixes)
@@ -157,6 +157,8 @@ opam install sail -y
 eval $(opam config env)
 git clone https://github.com/riscv/sail-riscv.git
 cd sail-riscv
+# For now, use checkout that is stable for Wally
+git checkout 72b2516d10d472ac77482fd959a9401ce3487f60
 make -j ${NUM_THREADS}
 ARCH=RV32 make -j ${NUM_THREADS}
 sudo ln -sf $RISCV/sail-riscv/c_emulator/riscv_sim_RV64 /usr/bin/riscv_sim_RV64
@@ -165,3 +167,7 @@ sudo ln -sf $RISCV/sail-riscv/c_emulator/riscv_sim_RV32 /usr/bin/riscv_sim_RV32
 sudo pip3 install testresources
 pip3 install git+https://github.com/riscv/riscof.git
 
+# Download OSU Skywater 130 cell library
+sudo mkdir -p $RISCV/cad/lib
+cd $RISCV/cad/lib
+sudo git clone https://foss-eda-tools.googlesource.com/skywater-pdk/libs/sky130_osu_sc_t12

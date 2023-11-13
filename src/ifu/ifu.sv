@@ -70,23 +70,24 @@ module ifu import cvw::*;  #(parameter cvw_t P) (
   output logic                 IClassWrongM,                             // Class prediction is wrong
   output logic                 ICacheStallF,                             // I$ busy with multicycle operation
   // Faults
-  input logic                  IllegalBaseInstrD,                        // Illegal non-compressed instruction
-  input logic                  IllegalFPUInstrD,                         // Illegal FP instruction
+  input  logic                 IllegalBaseInstrD,                        // Illegal non-compressed instruction
+  input  logic                 IllegalFPUInstrD,                         // Illegal FP instruction
   output logic                 InstrPageFaultF,                          // Instruction page fault 
   output logic                 IllegalIEUFPUInstrD,                      // Illegal instruction including compressed & FP
   output logic                 InstrMisalignedFaultM,                    // Branch target not aligned to 4 bytes if no compressed allowed (2 bytes if allowed)
   // mmu management
-  input logic [1:0]            PrivilegeModeW,                           // Priviledge mode in Writeback stage
-  input logic [P.XLEN-1:0]     PTE,                                      // Hardware page table walker (HPTW) writes Page table entry (PTE) to ITLB
-  input logic [1:0]            PageType,                                 // Hardware page table walker (HPTW) writes PageType to ITLB
-  input logic                  ITLBWriteF,                               // Writes PTE and PageType to ITLB
-  input logic [P.XLEN-1:0]     SATP_REGW,                                // Location of the root page table and page table configuration
-  input logic                  STATUS_MXR,                               // Status CSR: make executable page readable 
-  input logic                  STATUS_SUM,                               // Status CSR: Supervisor access to user memory
-  input logic                  STATUS_MPRV,                              // Status CSR: modify machine privilege
-  input logic [1:0]            STATUS_MPP,                               // Status CSR: previous machine privilege level
+  input  logic [1:0]           PrivilegeModeW,                           // Priviledge mode in Writeback stage
+  input  logic [P.XLEN-1:0]    PTE,                                      // Hardware page table walker (HPTW) writes Page table entry (PTE) to ITLB
+  input  logic [1:0]           PageType,                                 // Hardware page table walker (HPTW) writes PageType to ITLB
+  input  logic                 ITLBWriteF,                               // Writes PTE and PageType to ITLB
+  input  logic [P.XLEN-1:0]    SATP_REGW,                                // Location of the root page table and page table configuration
+  input  logic                 STATUS_MXR,                               // Status CSR: make executable page readable 
+  input  logic                 STATUS_SUM,                               // Status CSR: Supervisor access to user memory
+  input  logic                 STATUS_MPRV,                              // Status CSR: modify machine privilege
+  input  logic [1:0]           STATUS_MPP,                               // Status CSR: previous machine privilege level
   input  logic                 ENVCFG_PBMTE,                             // Page-based memory types enabled
-  input logic                  sfencevmaM,                               // Virtual memory address fence, invalidate TLB entries
+  input  logic                 ENVCFG_HADE,                              // HPTW A/D Update enable
+  input  logic                 sfencevmaM,                               // Virtual memory address fence, invalidate TLB entries
   output logic                 ITLBMissF,                                // ITLB miss causes HPTW (hardware pagetable walker) walk
   output logic                 InstrUpdateDAF,                           // ITLB hit needs to update dirty or access bits
   input  var logic [7:0]       PMPCFG_ARRAY_REGW[P.PMP_ENTRIES-1:0],     // PMP configuration from privileged unit
@@ -113,10 +114,7 @@ module ifu import cvw::*;  #(parameter cvw_t P) (
   logic [31:0]                 IROMInstrF;                               // Instruction from the IROM
   logic [31:0]                 ICacheInstrF;                             // Instruction from the I$
   logic [31:0]                 InstrRawF;                                // Instruction from the IROM, I$, or bus
-  logic                        CompressedF;                              // The fetched instruction is compressed
-  logic                        CompressedD;                              // The decoded instruction is compressed
-  logic                        CompressedE;                              // The execution instruction is compressed
-  logic                        CompressedM;                              // The execution instruction is compressed
+  logic                        CompressedF, CompressedE;                 // The fetched instruction is compressed
   logic [31:0]                 PostSpillInstrRawF;                       // Fetch instruction after merge two halves of spill
   logic [31:0]                 InstrRawD;                                // Non-decompressed instruction in the Decode stage
   logic                        IllegalIEUInstrD;                         // IEU Instruction (regular or compressed) is not good
@@ -143,7 +141,7 @@ module ifu import cvw::*;  #(parameter cvw_t P) (
   // Spill Support
   /////////////////////////////////////////////////////////////////////////////////////////////
 
-  if(P.C_SUPPORTED) begin : Spill
+  if(P.COMPRESSED_SUPPORTED) begin : Spill
     spill #(P) spill(.clk, .reset, .StallD, .FlushD, .PCF, .PCPlus4F, .PCNextF, .InstrRawF, .InstrUpdateDAF, .CacheableF, 
       .IFUCacheBusStallF, .ITLBMissF, .PCSpillNextF, .PCSpillF, .SelSpillNextF, .PostSpillInstrRawF, .CompressedF);
   end else begin : NoSpill
@@ -171,7 +169,7 @@ module ifu import cvw::*;  #(parameter cvw_t P) (
     assign TLBFlush = sfencevmaM & ~StallMQ;
 
     mmu #(.P(P), .TLB_ENTRIES(P.ITLB_ENTRIES), .IMMU(1))
-    immu(.clk, .reset, .SATP_REGW, .STATUS_MXR, .STATUS_SUM, .STATUS_MPRV, .STATUS_MPP, .ENVCFG_PBMTE,
+    immu(.clk, .reset, .SATP_REGW, .STATUS_MXR, .STATUS_SUM, .STATUS_MPRV, .STATUS_MPP, .ENVCFG_PBMTE, .ENVCFG_HADE,
          .PrivilegeModeW, .DisableTranslation(1'b0),
          .VAdr(PCFExt),
          .Size(2'b10),
@@ -339,8 +337,21 @@ module ifu import cvw::*;  #(parameter cvw_t P) (
 
   end else begin : bpred
     mux2 #(P.XLEN) pcmux1(.d0(PCPlus2or4F), .d1(IEUAdrE), .s(PCSrcE), .y(PC1NextF));    
+    logic BranchM, JumpM, BranchW, JumpW;
+    logic CallD, CallE, CallM, CallW;
+    logic ReturnD, ReturnE, ReturnM, ReturnW;
     assign BPWrongE = PCSrcE;
-    assign {InstrClassM, BPDirPredWrongM, BTAWrongM, RASPredPCWrongM, IClassWrongM} = '0;
+    icpred #(P, 0) icpred(.clk, .reset, .StallF, .StallD, .StallE, .StallM, .StallW, .FlushD, .FlushE, .FlushM, .FlushW,
+      .PostSpillInstrRawF, .InstrD, .BranchD, .BranchE, .JumpD, .JumpE, .BranchM, .BranchW, .JumpM, .JumpW,
+      .CallD, .CallE, .CallM, .CallW, .ReturnD, .ReturnE, .ReturnM, .ReturnW, 
+      .BTBCallF(1'b0), .BTBReturnF(1'b0), .BTBJumpF(1'b0),
+      .BTBBranchF(1'b0), .BPCallF(), .BPReturnF(), .BPJumpF(), .BPBranchF(), .IClassWrongM,
+      .IClassWrongE(), .BPReturnWrongD());
+    flopenrc #(1) PCSrcMReg(clk, reset, FlushM, ~StallM, PCSrcE, BPWrongM);
+    assign RASPredPCWrongM = '0;
+    assign BPDirPredWrongM = BPWrongM;
+    assign BTAWrongM = BPWrongM;
+    assign InstrClassM = {CallM, ReturnM, JumpM, BranchM};
     assign NextValidPCE = PCE;
   end      
 
@@ -352,9 +363,9 @@ module ifu import cvw::*;  #(parameter cvw_t P) (
   flopenrc #(P.XLEN) PCDReg(clk, reset, FlushD, ~StallD, PCF, PCD);
    
   // expand 16-bit compressed instructions to 32 bits
-  if (P.C_SUPPORTED) begin
+  if (P.COMPRESSED_SUPPORTED) begin
     logic IllegalCompInstrD;
-    decompress #(P.XLEN) decomp(.InstrRawD, .InstrD, .IllegalCompInstrD); 
+    decompress #(P) decomp(.InstrRawD, .InstrD, .IllegalCompInstrD); 
     assign IllegalIEUInstrD = IllegalBaseInstrD | IllegalCompInstrD; // illegal if bad 32 or 16-bit instr
   end else begin  
     assign InstrD = InstrRawD;
@@ -372,27 +383,43 @@ module ifu import cvw::*;  #(parameter cvw_t P) (
   // only IALIGN=32, the two low bits (mepc[1:0]) are always zero.
   // Spec 3.1.14
   // Traps: Can’t happen.  The bottom two bits of MTVEC are ignored so the trap always is to a multiple of 4.  See 3.1.7 of the privileged spec.
-  assign BranchMisalignedFaultE = (IEUAdrE[1] & ~P.C_SUPPORTED) & PCSrcE;
+  assign BranchMisalignedFaultE = (IEUAdrE[1] & ~P.COMPRESSED_SUPPORTED) & PCSrcE;
   flopenr #(1) InstrMisalignedReg(clk, reset, ~StallM, BranchMisalignedFaultE, InstrMisalignedFaultM);
 
-  // Instruction and PC/PCLink pipeline registers
-  // Cannot use flopenrc for Instr(E/M) as it resets to NOP not 0.
+  // Instruction and PC pipeline registers flush to NOP, not zero
   mux2    #(32)     FlushInstrEMux(InstrD, nop, FlushE, NextInstrD);
-  mux2    #(32)     FlushInstrMMux(InstrE, nop, FlushM, NextInstrE);
   flopenr #(32)     InstrEReg(clk, reset, ~StallE, NextInstrD, InstrE);
-  flopenr #(32)     InstrMReg(clk, reset, ~StallM, NextInstrE, InstrM);
   flopenr #(P.XLEN) PCEReg(clk, reset, ~StallE, PCD, PCE);
-  flopenr #(P.XLEN) PCMReg(clk, reset, ~StallM, PCE, PCM);
-  //flopenr #(P.XLEN) PCPDReg(clk, reset, ~StallD, PCPlus2or4F, PCLinkD);
-  //flopenr #(P.XLEN) PCPEReg(clk, reset, ~StallE, PCLinkD, PCLinkE);
 
-  flopenrc #(1) CompressedDReg(clk, reset, FlushD, ~StallD, CompressedF, CompressedD);
-  flopenrc #(1) CompressedEReg(clk, reset, FlushE, ~StallE, CompressedD, CompressedE);
-  assign PCLinkE = PCE + (CompressedE ? 2 : 4);
-
+  // InstrM is only needed with CSRs or atomic operations
+  if (P.ZICSR_SUPPORTED | P.A_SUPPORTED) begin
+    mux2    #(32)     FlushInstrMMux(InstrE, nop, FlushM, NextInstrE);
+    flopenr #(32)     InstrMReg(clk, reset, ~StallM, NextInstrE, InstrM);
+  end else assign InstrM = 0;
+  // PCM is only needed with CSRs or branch prediction
+  if (P.ZICSR_SUPPORTED | P.BPRED_SUPPORTED) 
+    flopenr #(P.XLEN) PCMReg(clk, reset, ~StallM, PCE, PCM);
+  else assign PCM = 0; 
+  
+  // If compressed instructions are supported, increment PCLink by 2 or 4 for a jal.  Otherwise, just by 4
+  if (P.COMPRESSED_SUPPORTED) begin
+    logic CompressedD;  // instruction is compressed
+    flopenrc #(1) CompressedDReg(clk, reset, FlushD, ~StallD, CompressedF, CompressedD);
+    flopenrc #(1) CompressedEReg(clk, reset, FlushE, ~StallE, CompressedD, CompressedE);
+    assign PCLinkE = PCE + (CompressedE ? 'd2 : 'd4); // 'd4 means 4 but stops Design Compiler complaining about signed to unsigned conversion
+  end else begin
+    assign CompressedE = 0;
+    assign PCLinkE = PCE + 'd4;
+  end
+ 
   // pipeline original compressed instruction in case it is needed for MTVAL on an illegal instruction exception
-  flopenrc #(16) InstrRawEReg(clk, reset, FlushE, ~StallE, InstrRawD[15:0], InstrRawE);
-  flopenrc #(16) InstrRawMReg(clk, reset, FlushM, ~StallM, InstrRawE, InstrRawM);
-  flopenrc #(1)  CompressedMReg(clk, reset, FlushM, ~StallM, CompressedE, CompressedM);
-  mux2     #(32) InstrOrigMux(InstrM, {16'b0, InstrRawM}, CompressedM, InstrOrigM); 
+  if (P.ZICSR_SUPPORTED & P.COMPRESSED_SUPPORTED | 1) begin
+    logic CompressedM; // instruction is compressed
+    flopenrc #(16) InstrRawEReg(clk, reset, FlushE, ~StallE, InstrRawD[15:0], InstrRawE);
+    flopenrc #(16) InstrRawMReg(clk, reset, FlushM, ~StallM, InstrRawE, InstrRawM);
+    flopenrc #(1)  CompressedMReg(clk, reset, FlushM, ~StallM, CompressedE, CompressedM);
+    mux2     #(32) InstrOrigMux(InstrM, {16'b0, InstrRawM}, CompressedM, InstrOrigM); 
+  end else
+    assign InstrOrigM = InstrM;
+
 endmodule

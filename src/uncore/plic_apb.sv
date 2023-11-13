@@ -49,7 +49,7 @@ module plic_apb import cvw::*;  #(parameter cvw_t P) (
   input  logic                PENABLE,
   output logic [P.XLEN-1:0]   PRDATA,
   output logic                PREADY,
-  input  logic                UARTIntr,GPIOIntr,SDCIntr,
+  input  logic                UARTIntr,GPIOIntr, SPIIntr, SDCIntr,
   output logic                MExtInt, SExtInt
 );
 
@@ -94,13 +94,9 @@ module plic_apb import cvw::*;  #(parameter cvw_t P) (
 
   // account for subword read/write circuitry
   // -- Note PLIC registers are 32 bits no matter what; access them with LW SW.
-  if (P.XLEN == 64) begin
-    assign Din    = entry[2] ? PWDATA[63:32] : PWDATA[31:0];
-    assign PRDATA = entry[2] ? {Dout,32'b0}  : {32'b0,Dout};
-  end else begin // 32-bit
-    assign PRDATA = Dout;
-    assign Din    = PWDATA[31:0];
-  end
+  assign Din = PWDATA[31:0]; 
+  if (P.XLEN == 64) assign PRDATA = {Dout, Dout}; 
+  else              assign PRDATA = Dout;    
 
   // ==================
   // Register Interface
@@ -160,6 +156,7 @@ module plic_apb import cvw::*;  #(parameter cvw_t P) (
     requests = {P.PLIC_NUM_SRC{1'b0}};
     if(P.PLIC_GPIO_ID != 0) requests[P.PLIC_GPIO_ID] = GPIOIntr;
     if(P.PLIC_UART_ID != 0) requests[P.PLIC_UART_ID] = UARTIntr;
+    if(P.PLIC_SPI_ID != 0) requests[P.PLIC_SPI_ID] = SPIIntr;
     if(P.PLIC_SDC_ID !=0)   requests[P.PLIC_SDC_ID]  = SDCIntr;
   end
 

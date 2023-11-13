@@ -84,6 +84,7 @@ module privileged import cvw::*;  #(parameter cvw_t P) (
   output logic [2:0]        FRM_REGW,                                       // FPU rounding mode
   output logic [3:0]        ENVCFG_CBE,                                     // Cache block operation enables
   output logic              ENVCFG_PBMTE,                                   // Page-based memory type enable
+  output logic              ENVCFG_HADE,                                    // HPTW A/D Update enable
   // PC logic output in privileged unit                                    
   output logic [P.XLEN-1:0] UnalignedPCNextF,                               // Next PC from trap/return PC logic
   // control outputs                                                       
@@ -114,15 +115,17 @@ module privileged import cvw::*;  #(parameter cvw_t P) (
   logic                     ExceptionM;                                     // Memory stage instruction caused a fault
   logic                     HPTWInstrAccessFaultM;                          // Hardware page table access fault while fetching instruction PTE
   
+  logic                     wfiW;
+  
   // track the current privilege level
   privmode #(P) privmode(.clk, .reset, .StallW, .TrapM, .mretM, .sretM, .DelegateM,
     .STATUS_MPP, .STATUS_SPP, .NextPrivilegeModeM, .PrivilegeModeW);
 
   // decode privileged instructions
-  privdec #(P) pmd(.clk, .reset, .StallM, .InstrM(InstrM[31:15]), 
+  privdec #(P) pmd(.clk, .reset, .StallM, .StallW, .FlushW, .InstrM(InstrM[31:15]), 
     .PrivilegedM, .IllegalIEUFPUInstrM, .IllegalCSRAccessM, 
     .PrivilegeModeW, .STATUS_TSR, .STATUS_TVM, .STATUS_TW, .IllegalInstrFaultM, 
-    .EcallFaultM, .BreakpointFaultM, .sretM, .mretM, .wfiM, .sfencevmaM);
+    .EcallFaultM, .BreakpointFaultM, .sretM, .mretM, .wfiM, .wfiW, .sfencevmaM);
 
   // Control and Status Registers
   csr #(P) csr(.clk, .reset, .FlushM, .FlushW, .StallE, .StallM, .StallW,
@@ -138,7 +141,7 @@ module privileged import cvw::*;  #(parameter cvw_t P) (
     .STATUS_MIE, .STATUS_SIE, .STATUS_MXR, .STATUS_SUM, .STATUS_MPRV, .STATUS_TW, .STATUS_FS,
     .MEDELEG_REGW, .MIP_REGW, .MIE_REGW, .MIDELEG_REGW,
     .SATP_REGW, .PMPCFG_ARRAY_REGW, .PMPADDR_ARRAY_REGW,
-    .SetFflagsM, .FRM_REGW, .ENVCFG_CBE, .ENVCFG_PBMTE,
+    .SetFflagsM, .FRM_REGW, .ENVCFG_CBE, .ENVCFG_PBMTE, .ENVCFG_HADE,
     .CSRReadValW,.UnalignedPCNextF, .IllegalCSRAccessM, .BigEndianM);
 
   // pipeline early-arriving trap sources
@@ -155,5 +158,5 @@ module privileged import cvw::*;  #(parameter cvw_t P) (
     .mretM, .sretM, .PrivilegeModeW, 
     .MIP_REGW, .MIE_REGW, .MIDELEG_REGW, .MEDELEG_REGW, .STATUS_MIE, .STATUS_SIE,
     .InstrValidM, .CommittedM, .CommittedF,
-    .TrapM, .RetM, .wfiM, .InterruptM, .ExceptionM, .IntPendingM, .DelegateM, .CauseM);
+    .TrapM, .RetM, .wfiM, .wfiW, .InterruptM, .ExceptionM, .IntPendingM, .DelegateM, .CauseM);
 endmodule

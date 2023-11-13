@@ -128,11 +128,15 @@ typedef struct packed {
   logic         SDC_SUPPORTED;
   logic [63:0]  SDC_BASE;
   logic [63:0]  SDC_RANGE;
+  logic         SPI_SUPPORTED;
+  logic [63:0]  SPI_BASE;
+  logic [63:0]  SPI_RANGE;
 
 // Test modes
 
 // Tie GPIO outputs back to inputs
   logic         GPIO_LOOPBACK_TEST;
+  logic         SPI_LOOPBACK_TEST;
 
 // Hardware configuration
   int           UART_PRESCALE ;
@@ -142,6 +146,7 @@ typedef struct packed {
   logic         PLIC_NUM_SRC_LT_32;
   int           PLIC_GPIO_ID;
   int           PLIC_UART_ID;
+  int           PLIC_SPI_ID;
   int           PLIC_SDC_ID;
 
   logic                BPRED_SUPPORTED;
@@ -149,6 +154,7 @@ typedef struct packed {
   int                  BPRED_NUM_LHR;
   int                  BPRED_SIZE;
   int                  BTB_SIZE;
+  int                  RAS_SIZE;
 
 // FPU division architecture
   int           RADIX;
@@ -159,6 +165,12 @@ typedef struct packed {
   logic         ZBB_SUPPORTED;
   logic         ZBC_SUPPORTED;
   logic         ZBS_SUPPORTED;
+
+// compressed
+  logic         ZCA_SUPPORTED;
+  logic         ZCB_SUPPORTED;
+  logic         ZCD_SUPPORTED;
+  logic         ZCF_SUPPORTED;
 
 // Memory synthesis configuration
   logic         USE_SRAM;
@@ -189,6 +201,7 @@ typedef struct packed {
   logic A_SUPPORTED;
   logic B_SUPPORTED;
   logic C_SUPPORTED;
+  logic COMPRESSED_SUPPORTED;  // C or ZCA
   logic D_SUPPORTED;
   logic E_SUPPORTED;
   logic F_SUPPORTED;
@@ -256,15 +269,12 @@ typedef struct packed {
   int CORRSHIFTSZ;
 
 // division constants
-  int DIVN       ;
   int LOGR       ;
   int RK         ;
-  int LOGRK      ;
   int FPDUR      ;
   int DURLEN     ;
   int DIVb       ;
   int DIVBLEN    ;
-  int DIVa       ;
 
 } cvw_t;
 

@@ -15,12 +15,13 @@ import os
 parser = argparse.ArgumentParser()
 
 parser.add_argument("DESIGN")
+parser.add_argument("HDLPATH");
 
 args=parser.parse_args()
 
 fin_path = glob.glob(f"{os.getenv('WALLY')}/src/**/{args.DESIGN}.sv",recursive=True)[0]
 
-fin = open(fin_path, "r")
+fin = open(fin_path, "r", encoding='utf-8')
 
 lines = fin.readlines()
 
@@ -60,11 +61,7 @@ for l in lines:
 buf += f"\t{moduleName} #(P) dut(.*);\nendmodule"
 
 # path to wrapper
-wrapperPath = f"{os.getenv('WALLY')}/synthDC/wrappers/{moduleName}wrapper.sv"
-
-# clear wrappers directory 
-os.system(f"rm {os.getenv('WALLY')}/synthDC/wrappers/*")
-os.system(f"mkdir {os.getenv('WALLY')}/synthDC/wrappers")
+wrapperPath = f"{args.HDLPATH}/{moduleName}wrapper.sv"
 
 fout = open(wrapperPath, "w")
 
@@ -73,6 +70,4 @@ fout.write(buf)
 fin.close()
 fout.close()
 
-
-
-print(buf)
+#print(buf)

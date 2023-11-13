@@ -70,6 +70,8 @@ module testbench;
   logic [3:0]  SDCDatIn;
   tri1  [3:0]  SDCDat;
   tri1         SDCCmd;
+  logic        SPIIn, SPIOut;
+  logic [3:0]  SPICS;
 
   logic        HREADY;
   logic        HSELEXT;
@@ -265,9 +267,7 @@ module testbench;
       // declare memory labels that interest us, the updateProgramAddrLabelArray task will find 
       // the addr of each label and fill the array. To expand, add more elements to this array 
       // and initialize them to zero (also initilaize them to zero at the start of the next test)
-      if(!P.FPGA) begin
-        updateProgramAddrLabelArray(ProgramAddrMapFile, ProgramLabelMapFile, ProgramAddrLabelArray);
-      end
+      updateProgramAddrLabelArray(ProgramAddrMapFile, ProgramLabelMapFile, ProgramAddrLabelArray);
     end
     
   ////////////////////////////////////////////////////////////////////////////////
@@ -361,21 +361,21 @@ module testbench;
   ////////////////////////////////////////////////////////////////////////////////
   // load memories with program image
   ////////////////////////////////////////////////////////////////////////////////
-  if (P.FPGA) `define TB_FPGA  // this is a gross hack for xcelium and verilator
+  if (P.SDC_SUPPORTED) `define TB_SDC_SUPPORTED  // this is a gross hack for xcelium and verilator
   if (P.IROM_SUPPORTED) `define TB_IROM_SUPPORTED
   if (P.DTIM_SUPPORTED) `define TB_DTIM_SUPPORTED
   if (P.BUS_SUPPORTED) `define TB_BUS_SUPPORTED
   always @(posedge clk) begin
     if (LoadMem) begin
-      if (P.FPGA) begin
-      `ifdef TB_FPGA
+      if (P.SDC_SUPPORTED) begin
+      `ifdef TB_SDC_SUPPORTED
         string romfilename, sdcfilename;
         romfilename = {"../tests/custom/fpga-test-sdc/bin/fpga-test-sdc.memfile"};
         sdcfilename = {"../testbench/sdc/ramdisk2.hex"};   
-        $readmemh(romfilename, dut.uncore.uncore.bootrom.bootrom.memory.ROM);
-        $readmemh(sdcfilename, sdcard.sdcard.FLASHmem);
+        //$readmemh(romfilename, dut.uncore.uncore.bootrom.bootrom.memory.ROM);
+        //$readmemh(sdcfilename, sdcard.sdcard.FLASHmem);
         // shorten sdc timers for simulation
-        dut.uncore.uncore.sdc.SDC.LimitTimers = 1;
+        //dut.uncore.uncore.sdc.SDC.LimitTimers = 1;
       `endif
       end
       else if (P.IROM_SUPPORTED) begin
@@ -428,10 +428,10 @@ module testbench;
     assign SDCDat = '0;
   end
 
-  wallypipelinedsoc  #(P) dut(.clk, .reset_ext, .reset, .HRDATAEXT,.HREADYEXT, .HRESPEXT,.HSELEXT,
-    .HCLK, .HRESETn, .HADDR, .HWDATA, .HWSTRB, .HWRITE, .HSIZE, .HBURST, .HPROT,
-    .HTRANS, .HMASTLOCK, .HREADY, .TIMECLK(1'b0), .GPIOIN, .GPIOOUT, .GPIOEN,
-    .UARTSin, .UARTSout, .SDCCmdIn, .SDCCmdOut, .SDCCmdOE, .SDCDatIn, .SDCCLK); 
+  wallypipelinedsoc #(P) dut(.clk, .reset_ext, .reset, .HRDATAEXT, .HREADYEXT, .HRESPEXT, .HSELEXT, .HSELEXTSDC,
+                        .HCLK, .HRESETn, .HADDR, .HWDATA, .HWSTRB, .HWRITE, .HSIZE, .HBURST, .HPROT,
+                        .HTRANS, .HMASTLOCK, .HREADY, .TIMECLK(1'b0), .GPIOIN, .GPIOOUT, .GPIOEN,
+                        .UARTSin, .UARTSout, .SDCIntr, .SPICS, .SPIOut, .SPIIn); 
 
   // generate clock to sequence tests
   always begin
@@ -442,20 +442,25 @@ module testbench;
   // Support logic
   ////////////////////////////////////////////////////////////////////////////////
 
+  // Duplicate copy of pipeline registers that are optimized out of some configurations
+  logic [31:0] NextInstrE, InstrM;
+  mux2    #(32)     FlushInstrMMux(dut.core.ifu.InstrE, dut.core.ifu.nop, dut.core.ifu.FlushM, NextInstrE);
+  flopenr #(32)     InstrMReg(clk, reset, ~dut.core.ifu.StallM, NextInstrE, InstrM);
+
   // Track names of instructions
   string InstrFName, InstrDName, InstrEName, InstrMName, InstrWName;
   logic [31:0] InstrW;
-  flopenr #(32)    InstrWReg(clk, reset, ~dut.core.ieu.dp.StallW,  dut.core.ifu.InstrM, InstrW);
+  flopenr #(32)    InstrWReg(clk, reset, ~dut.core.ieu.dp.StallW,  InstrM, InstrW);
   instrTrackerTB it(clk, reset, dut.core.ieu.dp.FlushE,
                 dut.core.ifu.InstrRawF[31:0],
                 dut.core.ifu.InstrD, dut.core.ifu.InstrE,
-                dut.core.ifu.InstrM,  InstrW,
+                InstrM,  InstrW,
                 InstrFName, InstrDName, InstrEName, InstrMName, InstrWName);
 
   // watch for problems such as lockup, reading unitialized memory, bad configs
   watchdog #(P.XLEN, 1000000) watchdog(.clk, .reset);  // check if PCW is stuck
   ramxdetector #(P.XLEN, P.LLEN) ramxdetector(clk, dut.core.lsu.MemRWM[1], dut.core.lsu.LSULoadAccessFaultM, dut.core.lsu.ReadDataM, 
-                                      dut.core.ifu.PCM, dut.core.ifu.InstrM, dut.core.lsu.IEUAdrM, InstrMName);
+                                      dut.core.ifu.PCM, InstrM, dut.core.lsu.IEUAdrM, InstrMName);
   riscvassertions #(P) riscvassertions();  // check assertions for a legal configuration
   loggers #(P, TEST, PrintHPMCounters, I_CACHE_ADDR_LOGGER, D_CACHE_ADDR_LOGGER, BPRED_LOGGER)
   loggers (clk, reset, DCacheFlushStart, DCacheFlushDone, memfilename);
@@ -480,7 +485,7 @@ module testbench;
 			     (dut.core.ieu.dp.regf.we3 & 
 			      dut.core.ieu.dp.regf.a3 == 3 & 
 			      dut.core.ieu.dp.regf.wd3 == 1)) |
-           ((dut.core.ifu.InstrM == 32'h6f | dut.core.ifu.InstrM == 32'hfc32a423 | dut.core.ifu.InstrM == 32'hfc32a823) & dut.core.ieu.c.InstrValidM ) |
+           ((InstrM == 32'h6f | InstrM == 32'hfc32a423 | InstrM == 32'hfc32a823) & dut.core.ieu.c.InstrValidM ) |
            ((dut.core.lsu.IEUAdrM == ProgramAddrLabelArray["tohost"]) & InstrMName == "SW" ); 
 
   DCacheFlushFSM #(P) DCacheFlushFSM(.clk(clk), .reset(reset), .start(DCacheFlushStart), .done(DCacheFlushDone));

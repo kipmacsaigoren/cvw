@@ -1,5 +1,5 @@
 //////////////////////////////////////////
-// wally-config.vh
+// config.vh
 //
 // Written: David_Harris@hmc.edu 4 January 2021
 // Modified: 
@@ -36,7 +36,7 @@ localparam XLEN = 32'd64;
 localparam IEEE754 = 0;
 
 // MISA RISC-V configuration per specification
-localparam MISA = (32'h00000104);
+localparam MISA = (32'h00000100);
 localparam ZICSR_SUPPORTED = 0;
 localparam ZIFENCEI_SUPPORTED = 0;
 localparam COUNTERS = 0;
@@ -124,11 +124,15 @@ localparam logic [63:0] PLIC_RANGE =  64'h03FFFFFF;
 localparam SDC_SUPPORTED = 1'b0;
 localparam logic [63:0] SDC_BASE =  64'h00013000;
 localparam logic [63:0] SDC_RANGE = 64'h0000007F;
+localparam SPI_SUPPORTED = 1'b0;
+localparam logic [63:0] SPI_BASE = 64'h10040000;
+localparam logic [63:0] SPI_RANGE = 64'h00000FFF;
 
 // Test modes
 
 // Tie GPIO outputs back to inputs
 localparam GPIO_LOOPBACK_TEST = 1;
+localparam SPI_LOOPBACK_TEST = 1;
 
 // Hardware configuration
 localparam UART_PRESCALE = 32'd1;
@@ -139,6 +143,7 @@ localparam PLIC_NUM_SRC = 32'd10;
 localparam PLIC_NUM_SRC_LT_32 = (PLIC_NUM_SRC < 32);
 localparam PLIC_GPIO_ID = 32'd3;
 localparam PLIC_UART_ID = 32'd10;
+localparam PLIC_SPI_ID = 32'd6;
 localparam PLIC_SDC_ID = 32'd9;
 
 localparam BPRED_SUPPORTED = 0;
@@ -146,6 +151,7 @@ localparam BPRED_TYPE = `BP_GSHARE; // BP_GSHARE_BASIC, BP_GLOBAL, BP_GLOBAL_BAS
 localparam BPRED_SIZE = 32'd10;
 localparam BPRED_NUM_LHR = 32'd6;
 localparam BTB_SIZE = 32'd10;
+localparam RAS_SIZE = 32'd16;
 
 localparam SVADU_SUPPORTED = 0;
 localparam ZMMUL_SUPPORTED = 0;
@@ -159,6 +165,12 @@ localparam ZBA_SUPPORTED = 0;
 localparam ZBB_SUPPORTED = 0;
 localparam ZBC_SUPPORTED = 0;
 localparam ZBS_SUPPORTED = 0;
+
+// New compressed instructions
+localparam ZCB_SUPPORTED = 0;
+localparam ZCA_SUPPORTED = 0;
+localparam ZCF_SUPPORTED = 0;
+localparam ZCD_SUPPORTED = 0;
 
 // Memory synthesis configuration
 localparam USE_SRAM = 0;

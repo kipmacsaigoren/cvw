@@ -94,7 +94,8 @@ module csrm  import cvw::*;  #(parameter cvw_t P) (
   localparam DSCRATCH1     = 12'h7B3;
   // Constants
   localparam ZERO = {(P.XLEN){1'b0}};
-  localparam MEDELEG_MASK  = 16'hB3FF;
+  // when compressed instructions are supported, there can't be misaligned instructions
+  localparam MEDELEG_MASK  = P.COMPRESSED_SUPPORTED ? 16'hB3FE : 16'hB3FF;
   localparam MIDELEG_MASK  = 12'h222; // we choose to not make machine interrupts delegable
 
  // There are PMP_ENTRIES = 0, 16, or 64 PMPADDR registers, each of which has its own flop
@@ -145,7 +146,7 @@ module csrm  import cvw::*;  #(parameter cvw_t P) (
   assign WriteMCOUNTERENM    = CSRMWriteM & (CSRAdrM == MCOUNTEREN);
   assign WriteMCOUNTINHIBITM = CSRMWriteM & (CSRAdrM == MCOUNTINHIBIT);
 
-  assign IllegalCSRMWriteReadonlyM = UngatedCSRMWriteM & (CSRAdrM == MVENDORID | CSRAdrM == MARCHID | CSRAdrM == MIMPID | CSRAdrM == MHARTID);
+  assign IllegalCSRMWriteReadonlyM = UngatedCSRMWriteM & (CSRAdrM == MVENDORID | CSRAdrM == MARCHID | CSRAdrM == MIMPID | CSRAdrM == MHARTID | CSRAdrM == MCONFIGPTR);
 
   // CSRs
   flopenr #(P.XLEN) MTVECreg(clk, reset, WriteMTVECM, {CSRWriteValM[P.XLEN-1:2], 1'b0, CSRWriteValM[0]}, MTVEC_REGW); 
@@ -172,7 +173,8 @@ module csrm  import cvw::*;  #(parameter cvw_t P) (
     assign MENVCFG_WriteValM = {
       MENVCFG_PreWriteValM[63]  & P.SSTC_SUPPORTED,
       MENVCFG_PreWriteValM[62]  & P.SVPBMT_SUPPORTED,
-      54'b0,
+      MENVCFG_PreWriteValM[61]  & P.SVADU_SUPPORTED,
+      53'b0,
       MENVCFG_PreWriteValM[7]   & P.ZICBOZ_SUPPORTED,
       MENVCFG_PreWriteValM[6:4] & {3{P.ZICBOM_SUPPORTED}},
       3'b0,

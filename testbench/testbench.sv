@@ -37,9 +37,9 @@ module testbench;
   parameter DEBUG=0;
   parameter TEST="none";
   parameter PrintHPMCounters=1;
-  parameter BPRED_LOGGER=0;
-  parameter I_CACHE_ADDR_LOGGER=0;
-  parameter D_CACHE_ADDR_LOGGER=0;
+  parameter BPRED_LOGGER=1;
+  parameter I_CACHE_ADDR_LOGGER=1;
+  parameter D_CACHE_ADDR_LOGGER=1;
  
 `include "parameter-defs.vh"
 
@@ -64,7 +64,8 @@ module testbench;
 
   logic [31:0] GPIOIN, GPIOOUT, GPIOEN;
   logic        UARTSin, UARTSout;
-
+  logic        SPIIn, SPIOut;
+  logic [3:0]  SPICS;
   logic        SDCIntr;
 
   logic        HREADY;
@@ -98,6 +99,7 @@ module testbench;
                           if (P.ZICSR_SUPPORTED)  tests = {arch64c, arch64cpriv};
                           else                   tests = {arch64c};
         "arch64m":      if (P.M_SUPPORTED)        tests = arch64m;
+        "arch64a":      if (P.A_SUPPORTED)        tests = arch64a;
         "arch64f":      if (P.F_SUPPORTED)        tests = arch64f;
         "arch64d":      if (P.D_SUPPORTED)        tests = arch64d;  
         "arch64f_fma":      if (P.F_SUPPORTED)        tests = arch64f_fma;
@@ -131,6 +133,7 @@ module testbench;
                           if (P.ZICSR_SUPPORTED)  tests = {arch32c, arch32cpriv};
                           else                   tests = {arch32c};
         "arch32m":      if (P.M_SUPPORTED)        tests = arch32m;
+        "arch32a":      if (P.A_SUPPORTED)        tests = arch32a;
         "arch32f":      if (P.F_SUPPORTED)        tests = arch32f;
         "arch32d":      if (P.D_SUPPORTED)        tests = arch32d;
         "arch32f_fma":      if (P.F_SUPPORTED)        tests = arch32f_fma;
@@ -260,9 +263,7 @@ module testbench;
       // declare memory labels that interest us, the updateProgramAddrLabelArray task will find 
       // the addr of each label and fill the array. To expand, add more elements to this array 
       // and initialize them to zero (also initilaize them to zero at the start of the next test)
-      if(!P.FPGA) begin
-        updateProgramAddrLabelArray(ProgramAddrMapFile, ProgramLabelMapFile, ProgramAddrLabelArray);
-      end
+      updateProgramAddrLabelArray(ProgramAddrMapFile, ProgramLabelMapFile, ProgramAddrLabelArray);
     end
     
   ////////////////////////////////////////////////////////////////////////////////
@@ -344,14 +345,14 @@ module testbench;
   ////////////////////////////////////////////////////////////////////////////////
   always @(posedge clk) begin
     if (LoadMem) begin
-      if (P.FPGA) begin
+      if (P.SDC_SUPPORTED) begin
         string romfilename, sdcfilename;
         romfilename = {"../tests/custom/fpga-test-sdc/bin/fpga-test-sdc.memfile"};
         sdcfilename = {"../testbench/sdc/ramdisk2.hex"};   
-        $readmemh(romfilename, dut.uncore.uncore.bootrom.bootrom.memory.ROM);
-        $readmemh(sdcfilename, sdcard.sdcard.FLASHmem);
+        //$readmemh(romfilename, dut.uncore.uncore.bootrom.bootrom.memory.ROM);
+        //$readmemh(sdcfilename, sdcard.sdcard.FLASHmem);
         // shorten sdc timers for simulation
-        dut.uncore.uncore.sdc.SDC.LimitTimers = 1;
+        //dut.uncore.uncore.sdc.SDC.LimitTimers = 1;
       end 
       else if (P.IROM_SUPPORTED)     $readmemh(memfilename, dut.core.ifu.irom.irom.rom.ROM);
       else if (P.BUS_SUPPORTED) $readmemh(memfilename, dut.uncore.uncore.ram.ram.memory.RAM);
@@ -367,6 +368,7 @@ module testbench;
   // instantiate device to be tested
   assign GPIOIN = 0;
   assign UARTSin = 1;
+  assign SPIIn = 0;
 
   if(P.EXT_MEM_SUPPORTED) begin
     ram_ahb #(.BASE(P.EXT_MEM_BASE), .RANGE(P.EXT_MEM_RANGE)) 
@@ -377,7 +379,7 @@ module testbench;
     assign {HRESPEXT, HRDATAEXT} = '0;
   end
 
-  if(P.FPGA) begin : sdcard
+  if(P.SDC_SUPPORTED) begin : sdcard
     // *** fix later
 /* -----\/----- EXCLUDED -----\/-----
     sdModel sdcard
@@ -394,10 +396,10 @@ module testbench;
     assign SDCIntr = '0;
   end
 
-  wallypipelinedsoc  #(P) dut(.clk, .reset_ext, .reset, .HRDATAEXT,.HREADYEXT, .HRESPEXT, .HSELEXT, .HSELEXTSDC,
+  wallypipelinedsoc  #(P) dut(.clk, .reset_ext, .reset, .HRDATAEXT, .HREADYEXT, .HRESPEXT, .HSELEXT, .HSELEXTSDC,
     .HCLK, .HRESETn, .HADDR, .HWDATA, .HWSTRB, .HWRITE, .HSIZE, .HBURST, .HPROT,
     .HTRANS, .HMASTLOCK, .HREADY, .TIMECLK(1'b0), .GPIOIN, .GPIOOUT, .GPIOEN,
-    .UARTSin, .UARTSout, .SDCIntr); 
+    .UARTSin, .UARTSout, .SDCIntr, .SPIIn, .SPIOut, .SPICS); 
 
   // generate clock to sequence tests
   always begin
@@ -408,20 +410,25 @@ module testbench;
   // Support logic
   ////////////////////////////////////////////////////////////////////////////////
 
+  // Duplicate copy of pipeline registers that are optimized out of some configurations
+  logic [31:0] NextInstrE, InstrM;
+  mux2    #(32)     FlushInstrMMux(dut.core.ifu.InstrE, dut.core.ifu.nop, dut.core.ifu.FlushM, NextInstrE);
+  flopenr #(32)     InstrMReg(clk, reset, ~dut.core.ifu.StallM, NextInstrE, InstrM);
+
   // Track names of instructions
   string InstrFName, InstrDName, InstrEName, InstrMName, InstrWName;
   logic [31:0] InstrW;
-  flopenr #(32)    InstrWReg(clk, reset, ~dut.core.ieu.dp.StallW,  dut.core.ifu.InstrM, InstrW);
+  flopenr #(32)    InstrWReg(clk, reset, ~dut.core.ieu.dp.StallW,  InstrM, InstrW);
   instrTrackerTB it(clk, reset, dut.core.ieu.dp.FlushE,
                 dut.core.ifu.InstrRawF[31:0],
                 dut.core.ifu.InstrD, dut.core.ifu.InstrE,
-                dut.core.ifu.InstrM,  InstrW,
+                InstrM,  InstrW,
                 InstrFName, InstrDName, InstrEName, InstrMName, InstrWName);
 
   // watch for problems such as lockup, reading unitialized memory, bad configs
   watchdog #(P.XLEN, 1000000) watchdog(.clk, .reset);  // check if PCW is stuck
   ramxdetector #(P.XLEN, P.LLEN) ramxdetector(clk, dut.core.lsu.MemRWM[1], dut.core.lsu.LSULoadAccessFaultM, dut.core.lsu.ReadDataM, 
-                                      dut.core.ifu.PCM, dut.core.ifu.InstrM, dut.core.lsu.IEUAdrM, InstrMName);
+                                      dut.core.ifu.PCM, InstrM, dut.core.lsu.IEUAdrM, InstrMName);
   riscvassertions #(P) riscvassertions();  // check assertions for a legal configuration
   loggers #(P, TEST, PrintHPMCounters, I_CACHE_ADDR_LOGGER, D_CACHE_ADDR_LOGGER, BPRED_LOGGER)
   loggers (clk, reset, DCacheFlushStart, DCacheFlushDone, memfilename);
@@ -446,7 +453,7 @@ module testbench;
 			     (dut.core.ieu.dp.regf.we3 & 
 			      dut.core.ieu.dp.regf.a3 == 3 & 
 			      dut.core.ieu.dp.regf.wd3 == 1)) |
-           ((dut.core.ifu.InstrM == 32'h6f | dut.core.ifu.InstrM == 32'hfc32a423 | dut.core.ifu.InstrM == 32'hfc32a823) & dut.core.ieu.c.InstrValidM ) |
+           ((InstrM == 32'h6f | InstrM == 32'hfc32a423 | InstrM == 32'hfc32a823) & dut.core.ieu.c.InstrValidM ) |
            ((dut.core.lsu.IEUAdrM == ProgramAddrLabelArray["tohost"]) & InstrMName == "SW" ); 
 
   DCacheFlushFSM #(P) DCacheFlushFSM(.clk(clk), .reset(reset), .start(DCacheFlushStart), .done(DCacheFlushDone));
