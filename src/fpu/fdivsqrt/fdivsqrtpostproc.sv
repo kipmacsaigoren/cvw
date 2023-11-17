@@ -110,7 +110,8 @@ module fdivsqrtpostproc import cvw::*;  #(parameter cvw_t P) (
 
     // Select quotient or remainder and do normalization shift
     mux2 #(P.DIVb+4)    presresultmux(NormQuotM, NormRemM, RemOpM, PreResultM);
-    assign PreIntResultM = $signed(PreResultM >>> IntNormShiftM); 
+    //assign PreIntResultM = $signed(PreResultM >>> IntNormShiftM); 
+    intnormshift #(P) intshift(.ShiftIn(PreResultM), .Shifted(PreIntResultM), .ShiftAmt(IntNormShiftM));
 
     // special case logic
     // terminates immediately when B is Zero (div 0) or |A| has more leading 0s than |B|
