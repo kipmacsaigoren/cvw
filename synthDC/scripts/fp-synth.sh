@@ -124,8 +124,8 @@ sed -i "${n32}s/IDIV_ON_FPU.*/IDIV_ON_FPU = 0;/" $WALLY/config/rv32gc/config.vh
 
 # Synthesize Integer Divider
 synthIntDiv () {
-make -C $WALLY/synthDC synth DESIGN=div TECH=tsmc28 CONFIG=rv32gc FREQ=3000 TITLE=$(getTitle) &
-make -C $WALLY/synthDC synth DESIGN=div TECH=tsmc28 CONFIG=rv64gc FREQ=3000 TITLE=$(getTitle) &
+make -C $WALLY/synthDC synth DESIGN=div TECH=tsmc28 CONFIG=rv32gc FREQ=5000 TITLE=$(getTitle) &
+make -C $WALLY/synthDC synth DESIGN=div TECH=tsmc28 CONFIG=rv64gc FREQ=5000 TITLE=$(getTitle) &
 make -C $WALLY/synthDC synth DESIGN=div TECH=tsmc28 CONFIG=rv32gc FREQ=100 TITLE=$(getTitle) &
 make -C $WALLY/synthDC synth DESIGN=div TECH=tsmc28 CONFIG=rv64gc FREQ=100 TITLE=$(getTitle) &
 wait
@@ -134,8 +134,8 @@ wait
 # Synthesize FP Divider Unit
 
 synthFPDiv () {
-make -C $WALLY/synthDC synth DESIGN=drsu TECH=tsmc28 CONFIG=rv32gc FREQ=3000 TITLE=$(getTitle) &
-make -C $WALLY/synthDC synth DESIGN=drsu TECH=tsmc28 CONFIG=rv64gc FREQ=3000 TITLE=$(getTitle) &
+make -C $WALLY/synthDC synth DESIGN=drsu TECH=tsmc28 CONFIG=rv32gc FREQ=5000 TITLE=$(getTitle) &
+make -C $WALLY/synthDC synth DESIGN=drsu TECH=tsmc28 CONFIG=rv64gc FREQ=5000 TITLE=$(getTitle) &
 make -C $WALLY/synthDC synth DESIGN=drsu TECH=tsmc28 CONFIG=rv32gc FREQ=100 TITLE=$(getTitle) &
 make -C $WALLY/synthDC synth DESIGN=drsu TECH=tsmc28 CONFIG=rv64gc FREQ=100 TITLE=$(getTitle) &
 wait
@@ -169,11 +169,16 @@ make -C $WALLY/synthDC synth DESIGN=fdivsqrtiter TECH=tsmc28 CONFIG=rv64gc FREQ=
 # forms title for synthesis
 
 getTitle () {
-RADIX=$(sed -n "158p" $WALLY/config/rv64gc/config.vh | tail -c 3 | head -c 1)
-K=$(sed -n "159p" $WALLY/config/rv64gc/config.vh | tail -c 3 | head -c 1)
-IDIV=$(sed -n "82p" $WALLY/config/rv64gc/config.vh | tail -c 3 | head -c 1)
-IDIVBITS=$(sed -n "81p" $WALLY/config/rv64gc/config.vh | tail -c 3 | head -c 1)
-FPMODELINE=($(sed -n "42p" $WALLY/config/rv64gc/config.vh)) 
+radixline=$(grep -n "RADIX" $WALLY/config/rv64gc/config.vh | cut -d: -f1)p
+RADIX=$(sed -n "$radixline" $WALLY/config/rv64gc/config.vh | tail -c 3 | head -c 1)
+kline=$(grep -n "DIVCOPIES" $WALLY/config/rv64gc/config.vh | cut -d: -f1)p
+K=$(sed -n "$kline" $WALLY/config/rv64gc/config.vh | tail -c 3 | head -c 1)
+idivline=$(grep -n "IDIV_ON_FPU" $WALLY/config/rv64gc/config.vh | cut -d: -f1)p
+IDIV=$(sed -n "$idivline" $WALLY/config/rv64gc/config.vh | tail -c 3 | head -c 1)
+idivbitsline=$(grep -n "IDIV_BITSPERCYCLE =" $WALLY/config/rv64gc/config.vh | cut -d: -f1)p
+IDIVBITS=$(sed -n "$idivbitsline" $WALLY/config/rv64gc/config.vh | tail -c 3 | head -c 1)
+FPMODELINE=$(grep -n "F =" $WALLY/config/rv64gc/config.vh | cut -d: -f1)p
+FPMODELINE=($(sed -n "$FPMODELINE" $WALLY/config/rv64gc/config.vh)) 
 FPMODE=${FPMODELINE[3]}
 title="RADIX_${RADIX}_K_${K}_INTDIV_${IDIV}_IDIVBITS_${IDIVBITS}_FPMODE_${FPMODE}"
 echo $title
@@ -181,7 +186,7 @@ echo $title
 
 # writes area delay of runs to csv
 writeCSV () {
-    echo "design,area,timing" > $WALLY/synthDC/fp-synth.csv
+    echo "design,area,timing,power" > $WALLY/synthDC/fp-synth.csv
     # iterate over all files in runs/
     for FILE in $WALLY/synthDC/runs/*;
     do
@@ -195,8 +200,38 @@ writeCSV () {
         timingString=($(grep "data arrival time" $FILE/reports/timing.rep))
         timing=${timingString[3]}
 
+        # grab power
+        powerString=($(grep "100.0" $FILE/reports/power.rep))
+        power=${powerString[4]}
+
         # write to csv
-        echo $design,$area,$timing >> $WALLY/synthDC/fp-synth.csv
+        echo $design,$area,$timing,$power >> $WALLY/synthDC/fp-synth.csv
+        
+    done;
+}
+
+# writes area delay of runs to csv
+writeCSVdiv () {
+    echo "design,area,timing,power" > $WALLY/synthDC/fp-synthdiv.csv
+    # iterate over all files in runs/
+    for FILE in $WALLY/synthDC/runs/ppa_div*;
+    do
+        design="${FILE##*/}"
+
+        # grab area
+        areaString=($(grep "Total cell area" $FILE/reports/area.rep))
+        area=${areaString[3]}
+
+        # grab timing
+        timingString=($(grep "data arrival time" $FILE/reports/timing.rep))
+        timing=${timingString[3]}
+
+        # grab power
+        powerString=($(grep "100.0" $FILE/reports/power.rep))
+        power=${powerString[4]}
+
+        # write to csv
+        echo $design,$area,$timing,$power >> $WALLY/synthDC/fp-synth_intdiv.csv
         
     done;
 }
@@ -378,38 +413,15 @@ go2() {
 
 setIDIVeq0
 
-# K = 1, R = 4
-setKeq1
-setRADIXeq4
+setIDIVBITSeq1
 
 synthIntDiv
 
-# K = 2, R = 2
-setKeq2
-setRADIXeq2
-synthIntDiv
-
-# K = 1, R = 2
-setKeq1
-setRADIXeq2
+setIDIVBITSeq2
 
 synthIntDiv
 
-# K = 2, R =4
-setKeq2
-setRADIXeq4
-
-synthIntDiv
-
-# K = 4, R = 2
-setKeq4
-setRADIXeq2
-
-synthIntDiv
-
-# K = 4, R = 4
-setKeq4
-setRADIXeq4
+setIDIVBITSeq4
 
 synthIntDiv
 
